@@ -4,14 +4,18 @@ from collections import OrderedDict
 class Grammar:
 
     def __int__(self, first_variable: str, first_string: str):
-        self.rules = OrderedDict()
+        self._rules = OrderedDict()
         self.starting_symbol = first_variable
         self.add_rule(first_variable, first_string)
 
+    @property
+    def rules(self):
+        return self._rules
+
     def add_rule(self, variable: str, string: str) -> None:
         if variable not in self.rules:
-            self.rules[variable] = []
-        self.rules[variable].extend([s.strip() for s in string.split("|")])
+            self._rules[variable] = []
+        self._rules[variable].extend([s.strip() for s in string.split("|")])
 
     def is_non_terminal_symbol(self, symbol: str) -> bool:
         return symbol in self.rules
