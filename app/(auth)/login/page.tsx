@@ -50,7 +50,7 @@ export default function Login() {
                     "sessionIdentifier",
                     encryptedSessionIdentifier
                 );
-                router.push("/workbook");
+                router.push("/home");
                 console.log("redirect");
             })
             .catch((error) => {
@@ -99,9 +99,7 @@ export default function Login() {
                             Sign in
                         </button>
                     )} */}
-                    <button type="submit" disabled={isFormFilled}>
-                        Sign In
-                    </button>
+                    <button type="submit">Sign In</button>
                 </div>
             </div>
 

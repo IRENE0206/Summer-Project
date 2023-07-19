@@ -97,7 +97,7 @@ def get_session_user():
     }
     return jsonify(user_data)
 
-@bp.route("/logout")
+@bp.route("/logout", methods=["POST"])
 def logout():
     session.clear()
     return succeed("Log out successful")

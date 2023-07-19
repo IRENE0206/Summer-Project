@@ -1,8 +1,8 @@
-import { UserInfo } from "@/interfaces/Interfaces";
 import { useEffect, useState } from "react";
+import { UserInfoInterface } from "@/interfaces/Interfaces";
 
-export default function User() {
-    const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+export default function UserInfo() {
+    const [userInfo, setUserInfo] = useState<UserInfoInterface | null>(null);
     const api = "/api/user";
     useEffect(() => {
         fetch(api, {

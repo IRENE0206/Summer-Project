@@ -52,7 +52,7 @@ export default function Register() {
                     "sessionIdentifier",
                     encryptedSessionIdentifier
                 );
-                router.push("/workbook");
+                router.push("/home");
             })
             .catch((error) => {
                 console.log(error);
