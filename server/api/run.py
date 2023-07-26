@@ -5,6 +5,7 @@ from datetime import datetime
 
 from .auth import login_required
 from .db import db, Workbooks
+from .util import unauthorized, notfound, badrequest, conflict, succeed
 
 bp = Blueprint('app', __name__, url_prefix="/api")
 
@@ -42,11 +43,31 @@ def get_workbooks():
         '''
     return jsonify(workbooks)
 
-@bp.route("/workbook/edit", methods=["POST"])
+@bp.route("/workbook/<int:workbook_id>/edit", methods=["POST"])
 @login_required
 def edit_workbook():
     data = request.get_json()
     workbook_id = data.get("workbook_id")
+    
     workbooks = db.session.execute(
             db.select(Workbooks)
         ).scalars().all()
+
+
+@bp.route("/workbook/new", methods=["POST"])
+@login_required
+def add_workbook():
+    data = request.get_json()
+    workbook_name = data.get("workbook_name")
+    release_date = data.get("release_date")
+    last_edit = data.get("last_edit")
+    
+    try:
+        workbook = Workbooks(workbook_name=workbook_name, release_date=release_date, last_edit=last_edit)
+        db.session.add(workbook)
+        db.session.commit()
+    except IntegrityError:
+        error = f"Workbook name {workbook_name} has already existed"
+        return conflict(error)
+    return succeed("Created new workbook successfully")
+

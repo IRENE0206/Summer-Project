@@ -8,14 +8,16 @@ import { useRouter } from "next/navigation";
 export default function Login() {
     const router = useRouter();
     async function handleLoginSubmit(e: FormEvent<HTMLFormElement>) {
+        // Prevent the browser from reloading the page
         e.preventDefault();
-
+        // Read the form data
         const form = e.currentTarget;
         const formData = new FormData(form);
         const data = {
             username: formData.get("login_username"),
             password: formData.get("login_password"),
         };
+        // Verify all input fields are filled
         if (!data.username || !data.password) {
             console.log("Form fileds are required");
             return;
@@ -23,6 +25,7 @@ export default function Login() {
 
         console.log("LOGIN HERE");
         const api = "/api/login";
+        // pass data as a fetch body
         fetch(api, {
             method: "POST",
             headers: {
@@ -41,6 +44,7 @@ export default function Login() {
                 }
             })
             .then((data) => {
+                // store the session in client side
                 const sessionIdentifier = data.session_identifier;
                 const encryptedSessionIdentifier = CryptoJS.AES.encrypt(
                     sessionIdentifier,
@@ -50,8 +54,9 @@ export default function Login() {
                     "sessionIdentifier",
                     encryptedSessionIdentifier
                 );
+                console.log("Login successful. Now direct to '/home");
+                // Redirect to homepage if login is successful
                 router.push("/home");
-                console.log("redirect");
             })
             .catch((error) => {
                 console.log(error);
@@ -90,15 +95,6 @@ export default function Login() {
                 </div>
 
                 <div>
-                    {/*{isFormValid ? (
-                        <Link href="/workbook">
-                            <button type="submit">Sign in</button>
-                        </Link>
-                    ) : (
-                        <button type="submit" disabled={isFormFilled}>
-                            Sign in
-                        </button>
-                    )} */}
                     <button type="submit">Sign In</button>
                 </div>
             </div>

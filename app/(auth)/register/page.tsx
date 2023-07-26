@@ -18,16 +18,16 @@ export default function Register() {
             password: formData.get("first_password"),
             repeat_password: formData.get("repeat_password"),
         };
+        // Verify all input fields are filled
         if (!data.username || !data.password || !data.repeat_password) {
             console.log("Form fields are required.");
             return;
         }
 
-        console.log("register here");
-        const api = "/api/register";
-        // You can pass formData as a fetch body directly:
+        console.log("Form fields filled. Pass data to backend.");
         console.log(JSON.stringify(data));
-
+        // pass data as a fetch body
+        const api = "/api/register";
         fetch(api, {
             method: "POST",
             headers: {
@@ -43,6 +43,7 @@ export default function Register() {
                 return res.json();
             })
             .then((data) => {
+                // store the session in client side
                 const sessionIdentifier = data.session_identifier;
                 const encryptedSessionIdentifier = CryptoJS.AES.encrypt(
                     sessionIdentifier,
@@ -52,6 +53,8 @@ export default function Register() {
                     "sessionIdentifier",
                     encryptedSessionIdentifier
                 );
+                console.log("Registration successful. Now direct to '/home");
+                // Redirect to homepage if registration is successful
                 router.push("/home");
             })
             .catch((error) => {

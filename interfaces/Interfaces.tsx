@@ -1,4 +1,4 @@
-export interface Workbook {
+export interface WorkbookInterface {
     workbook_id: number;
     workbook_name: string;
     release_date: Date;

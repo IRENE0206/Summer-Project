@@ -1,17 +1,39 @@
 import { UserInfoInterface } from "@/interfaces/Interfaces";
-import Logout from "@/utils/Logout";
+import Dropdown from "react-bootstrap/Dropdown";
 
 export default function UserMenu({ info }: { info: UserInfoInterface | null }) {
+    function onClickHandler() {
+        localStorage.removeItem("sessionIdentifier");
+        const api = "/api/logout";
+        fetch(api, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        })
+            .then((res) => {
+                if (res.ok) {
+                    console.log("Login out successful");
+                } else {
+                    throw new Error("Login failed");
+                }
+            })
+            .catch((error) => console.log("Log out failed"));
+    }
     return (
-        <div>
-            <button type="button">
+        <Dropdown drop={"up-centered"} align={"start"}>
+            <Dropdown.Toggle variant="success" id="user-menu-dropdown">
                 {info == null ? (
                     <p>Loading usermenu</p>
                 ) : (
-                    <div>{info.user_name}</div>
+                    <span>{info.user_name}</span>
                 )}
-            </button>
-            <Logout />
-        </div>
+            </Dropdown.Toggle>
+            <Dropdown.Menu>
+                <Dropdown.Item href="/logout" onClick={onClickHandler}>
+                    Sign out
+                </Dropdown.Item>
+            </Dropdown.Menu>
+        </Dropdown>
     );
 }

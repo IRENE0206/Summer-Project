@@ -42,7 +42,6 @@ def register():
         db.session.commit()
     except IntegrityError:
         error = f"User {username} is already registered."
-        print("what?")
         return conflict(error)
     
     session["username"] = username
@@ -72,7 +71,8 @@ def login():
     session["user_id"] = user.user_id
     session["user_role"] = user.role
     session["username"] = user.username
-    return succeed("You have logged in sucessfully")
+    session["sessionIdentifier"] = generate_session_identifier()
+    return succeed("You have logged in sucessfully", session_identifier=session["sessionIdentifier"])
 
 def login_required(f):
     @wraps(f)

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-export default function UseAuth(url?: string) {
+export default function UserAuth(url?: string) {
     const [passAuth, setPassAuth] = useState(false);
     const router = useRouter();
 

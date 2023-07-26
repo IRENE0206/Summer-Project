@@ -1,8 +1,11 @@
 "use client";
-import UseAuth from "@/utils/UseAuth";
+import UserAuth from "@/utils/UserAuth";
 
 export default function Home() {
-    UseAuth("/home");
+    // Authentification
+    // if succeed, redirect to homepage
+    // else redirect to login
+    UserAuth("/home");
 
     return (
         <>

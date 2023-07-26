@@ -1,9 +1,12 @@
-import { Workbook } from "@/interfaces/Interfaces";
+import "bootstrap/dist/css/bootstrap.css";
+import { WorkbookInterface } from "@/interfaces/Interfaces";
 import { useEffect, useState } from "react";
+import NavLink from "react-bootstrap/NavLink";
+import { Nav } from "react-bootstrap";
 
 export default function NavBar() {
     const api = "/api/workbooks";
-    const [workbooks, setWorkbooks] = useState<Workbook[]>([]);
+    const [workbooks, setWorkbooks] = useState<WorkbookInterface[]>([]);
     const [error, setError] = useState(null);
     useEffect(() => {
         fetch(api, {
@@ -37,19 +40,27 @@ export default function NavBar() {
     }, []);
 
     return (
-        <div>
-            <ul>
-                {workbooks ? (
-                    workbooks.map((workbook) => (
-                        <li key={workbook["workbook_id"]}>
-                            {workbook["workbook_name"]}
-                        </li>
-                    ))
-                ) : (
-                    <li>Loading workbooks...</li>
-                )}
-            </ul>
-            <p>{workbooks.length}</p>
-        </div>
+        <Nav
+            variant="pills"
+            navbarScroll={true}
+            className="justify-content-end flex-column"
+        >
+            {workbooks ? (
+                workbooks.map((workbook) => (
+                    <NavLink
+                        key={workbook["workbook_id"]}
+                        href={`/${workbook["workbook_id"]}/menu`}
+                    >
+                        <button>{workbook["workbook_name"]}</button>
+                    </NavLink>
+                ))
+            ) : (
+                <p>Loading workbooks...</p>
+            )}
+
+            <NavLink href="">WORKBOOK NAME</NavLink>
+
+            <p>current workbook count: {workbooks.length}</p>
+        </Nav>
     );
 }
