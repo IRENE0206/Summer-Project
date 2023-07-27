@@ -3,6 +3,8 @@ import Link from "next/link";
 import { FormEvent } from "react";
 import CryptoJS from "crypto-js";
 import { useRouter } from "next/navigation";
+import Form from "react-bootstrap/Form";
+import InputGroup from "react-bootstrap/InputGroup";
 
 export default function Register() {
     const router = useRouter();
@@ -62,11 +64,11 @@ export default function Register() {
             });
     }
     return (
-        <form method="post" onSubmit={handleRegisterSubmit}>
-            <div>
-                <label>Email address</label>
-                <div>
-                    <input
+        <Form method="post" onSubmit={handleRegisterSubmit}>
+            <Form.Group>
+                <Form.Label>Email address</Form.Label>
+                <InputGroup>
+                    <Form.Control
                         id="register_username"
                         name="register_username"
                         type="search"
@@ -74,47 +76,39 @@ export default function Register() {
                         placeholder="You UoB username"
                         required
                     />
-                    <span>@bristol.ac.uk</span>
-                </div>
-            </div>
+                    <InputGroup.Text>@bristol.ac.uk</InputGroup.Text>
+                </InputGroup>
+            </Form.Group>
 
-            <div>
-                <div>
-                    <label>Password</label>
-                    <div>
-                        <input
-                            id="first_password"
-                            name="first_password"
-                            type="password"
-                            autoComplete="current-password"
-                            required
-                        />
-                    </div>
-                </div>
-                <div>
-                    <label>Confirm Password</label>
-                    <div>
-                        <input
-                            id="repeat_password"
-                            name="repeat_password"
-                            type="password"
-                            autoComplete="current-password"
-                            required
-                        />
-                    </div>
-                </div>
-            </div>
+            <Form.Group>
+                <Form.Label>Password</Form.Label>
 
-            <div>
-                <div>
-                    <button type="submit">Register</button>
-                </div>
-            </div>
+                <Form.Control
+                    id="first_password"
+                    name="first_password"
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                />
+            </Form.Group>
+            <Form.Group>
+                <Form.Label>Confirm Password</Form.Label>
+
+                <Form.Control
+                    id="repeat_password"
+                    name="repeat_password"
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                />
+            </Form.Group>
+
+            <button type="submit">Register</button>
 
             <p>
                 Already have an account?
                 <Link href="/login">Sign In</Link>
             </p>
-        </form>
+        </Form>
     );
 }

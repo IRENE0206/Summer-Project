@@ -3,6 +3,7 @@ from collections import OrderedDict
 
 class Grammar:
 
+    # initiate a "Grammar" object
     def __int__(self, first_variable: str, first_string: str):
         self._rules = OrderedDict()
         self.starting_symbol = first_variable
@@ -12,14 +13,16 @@ class Grammar:
     def rules(self):
         return self._rules
 
+    # add rules to the "Grammar" object
     def add_rule(self, variable: str, string: str) -> None:
         if variable not in self.rules:
-            self._rules[variable] = []
-        self._rules[variable].extend([s.strip() for s in string.split("|")])
+            self._rules[variable] = set()
+        self._rules[variable].update([s.strip() for s in string.split("|")])
 
     def is_non_terminal_symbol(self, symbol: str) -> bool:
         return symbol in self.rules
 
+    # l(k) = length of the shortest terminal string derivable from the kth non-terminal symbol of "Grammar" G
     # l = max{l(k)}
     def calculate_l(self) -> int:
         max_length = 0
@@ -29,21 +32,16 @@ class Grammar:
                 max_length = lk
         return max_length
 
+    '''
     def find_shortest_derivable(self, variable: str) -> str:
-        shortest_string = ""
-        for rule in self.rules[variable]:
-            string = ""
-            shortest_length = len(shortest_string)
+        shortest_strings = set()
+        shortest_length = 0
+        symbol_rules = self.rules[variable]
+        for rule in symbol_rules:
             for symbol in rule:
-                if 0 < shortest_length <= len(string):
-                    break
-                elif self.is_non_terminal_symbol(symbol):
-                    string += self.find_shortest_derivable(symbol)
-                else:
-                    string += symbol
-            if shortest_length == 0 or len(string) < shortest_length:
-                shortest_string = string
-        return shortest_string
+                if self.is_non_terminal_symbol(symbol):
+                    '''
+                    
 
     def is_equivalent_to(self, answer: 'Grammar') -> bool:
         # Whenever an equivalence pair thus generated has a left side of length

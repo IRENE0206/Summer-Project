@@ -1,5 +1,6 @@
 "use client";
 import UserAuth from "@/utils/UserAuth";
+import { Container } from "react-bootstrap";
 
 export default function Home() {
     // Authentification
@@ -8,9 +9,9 @@ export default function Home() {
     UserAuth("/home");
 
     return (
-        <>
+        <Container>
             <p>Loading...</p>
             <p>You need to sign in first</p>
-        </>
+        </Container>
     );
 }

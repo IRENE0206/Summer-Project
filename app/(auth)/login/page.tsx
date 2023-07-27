@@ -4,6 +4,8 @@ import Link from "next/link";
 import { FormEvent } from "react";
 import CryptoJS from "crypto-js";
 import { useRouter } from "next/navigation";
+import Form from "react-bootstrap/Form";
+import InputGroup from "react-bootstrap/InputGroup";
 
 export default function Login() {
     const router = useRouter();
@@ -64,11 +66,11 @@ export default function Login() {
     }
 
     return (
-        <form method="post" onSubmit={handleLoginSubmit}>
-            <div>
-                <label>Email address</label>
-                <div>
-                    <input
+        <Form method="post" onSubmit={handleLoginSubmit}>
+            <Form.Group>
+                <Form.Label>Email address</Form.Label>
+                <InputGroup>
+                    <Form.Control
                         id="login_username"
                         name="login_username"
                         type="search"
@@ -76,33 +78,28 @@ export default function Login() {
                         placeholder="You UoB username"
                         required
                     />
-                    <span>@bristol.ac.uk</span>
-                </div>
-            </div>
+                    <InputGroup.Text>@bristol.ac.uk</InputGroup.Text>
+                </InputGroup>
+            </Form.Group>
 
-            <div>
-                <div>
-                    <label>Password</label>
-                    <div>
-                        <input
-                            id="login_password"
-                            name="login_password"
-                            type="password"
-                            autoComplete="current-password"
-                            required
-                        />
-                    </div>
-                </div>
+            <Form.Group>
+                <Form.Label>Password</Form.Label>
 
-                <div>
-                    <button type="submit">Sign In</button>
-                </div>
-            </div>
+                <Form.Control
+                    id="login_password"
+                    name="login_password"
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                />
+            </Form.Group>
+
+            <button type="submit">Sign In</button>
 
             <p>
                 Do not have an account?
                 <Link href="/register">Register</Link>
             </p>
-        </form>
+        </Form>
     );
 }

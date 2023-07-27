@@ -1,17 +1,13 @@
 "use client";
 import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
+
 import NavBar from "@/components/NavBar";
 import UserMenu from "@/components/UserMenu";
 import UserAuth from "@/utils/UserAuth";
 import UserInfo from "@/utils/UserInfo";
 import { useState } from "react";
-import Button from "react-bootstrap/Button";
-import { Offcanvas } from "react-bootstrap";
-import Nav from "react-bootstrap/Nav";
+import { Offcanvas, Row } from "react-bootstrap";
 import Navbar from "react-bootstrap/Navbar";
-import NavDropdown from "react-bootstrap/NavDropdown";
 import Link from "next/link";
 
 export default function MainLayout({
@@ -33,50 +29,52 @@ export default function MainLayout({
             {passAuth ? (
                 <div>
                     <header>
-                        <Navbar expand={false} sticky="top">
+                        <Navbar expand="sm" sticky="top">
                             <Container fluid>
-                                <Navbar.Toggle
-                                    onClick={handleShow}
-                                ></Navbar.Toggle>
                                 <Navbar.Brand>WEBSITE NAME</Navbar.Brand>
+                                <Navbar.Toggle
+                                    onClick={show ? handleClose : handleShow}
+                                ></Navbar.Toggle>
                             </Container>
                         </Navbar>
                     </header>
-                    <div className="container-xxl bd-gutter mt-3 my-md-4 bd-layout">
-                        <aside className="bd-sidebar">
+                    <div className="container-xxl bd-gutter bd-layout">
+                        <aside>
                             <Offcanvas
-                                backdropClassName="sidebar"
                                 show={show}
                                 onHide={handleClose}
+                                bsPrefix="offcanvas"
                                 backdrop={false}
+                                keyboard={false}
                                 scroll={true}
+                                placement="start"
+                                responsive="sm"
                             >
-                                <Container fluid>
-                                    <Offcanvas.Header closeButton>
-                                        <Offcanvas.Title>
-                                            WORKBOOKS
-                                        </Offcanvas.Title>
-                                    </Offcanvas.Header>
+                                <Offcanvas.Header closeButton>
+                                    <Offcanvas.Title>WORKBOOKS</Offcanvas.Title>
+                                </Offcanvas.Header>
 
-                                    <Offcanvas.Body>
-                                        <div>
+                                <Offcanvas.Body>
+                                    <Container fluid>
+                                        <Row>
                                             <Link href="/workbook/new">
                                                 <button type="button">
                                                     + New workbook
                                                 </button>
                                             </Link>
-                                        </div>
-                                        <div>
+                                        </Row>
+                                        <Row>
                                             <NavBar />
-                                        </div>
+                                        </Row>
 
-                                        <div>
+                                        <Row>
                                             <UserMenu info={userInfo} />
-                                        </div>
-                                    </Offcanvas.Body>
-                                </Container>
+                                        </Row>
+                                    </Container>
+                                </Offcanvas.Body>
                             </Offcanvas>
                         </aside>
+
                         <main className="bd-main">{children}</main>
                     </div>
                 </div>

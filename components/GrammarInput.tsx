@@ -1,4 +1,9 @@
 import { useState } from "react";
+import Col from "react-bootstrap/Col";
+import Form from "react-bootstrap/Form";
+import Row from "react-bootstrap/Row";
+
+import InputGroup from "react-bootstrap/InputGroup";
 
 interface Line {
     id: number;
@@ -49,16 +54,18 @@ export default function GrammarInput() {
     return (
         <>
             {lines.map((line) => (
-                <div key={line.id}>
-                    <input
+                <InputGroup key={line.id}>
+                    <Form.Control
+                        aria-label="variable"
                         type="search"
                         value={line.variable}
                         onChange={(e) =>
                             handleChangeLineVariable(line.id, e.target.value)
                         }
                     />
-                    <span>arrow</span>
-                    <input
+                    <InputGroup.Text>&rarr;</InputGroup.Text>
+                    <Form.Control
+                        aria-label="rule"
                         type="search"
                         value={line.rule}
                         onChange={(e) =>
@@ -73,7 +80,7 @@ export default function GrammarInput() {
                         Delete
                     </button>
                     <br />
-                </div>
+                </InputGroup>
             ))}
             <button type="button" onClick={handleAddLine}>
                 Add new line
