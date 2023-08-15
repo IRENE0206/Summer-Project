@@ -30,14 +30,20 @@ class Exercises(db.Model):
     exercise_id = db.Column(Integer, primary_key=True, autoincrement=True)
     exercise_number = db.Column(Text, nullable=False)
     exercise_content = db.Column(Text, nullable=False)
-    exercise_answer = db.Column(Text)
     workbook_id = db.Column(Integer, db.ForeignKey("workbooks.workbook_id"), nullable=False)
 
 
 class Answers(db.Model):
     __tablename__ = "answers"
     answer_id = db.Column(Integer, primary_key=True, autoincrement=True)
-    answer_content = db.Column(Text, nullable=False)
     feedback = db.Column(Text)
     exercise_id = db.Column(Integer, db.ForeignKey("exercises.exercise_id"), nullable=False)
     user_id = db.Column(Integer, db.ForeignKey("users.user_id"), nullable=False)
+
+class Lines(db.Model):
+    __tablename__ = "lines"
+    line_id = db.Column(Integer, primary_key=True, autoincrement=True)
+    line_index = db.Column(Integer)
+    answer_id = db.Column(Integer, db.ForeignKey("answers.answer_id"), nullable=False)
+    variable = db.Column(Text)
+    rules = db.Column(Text)

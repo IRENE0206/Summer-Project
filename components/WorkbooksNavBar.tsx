@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import NavLink from "react-bootstrap/NavLink";
 import { Nav } from "react-bootstrap";
 
-export default function NavBar() {
+export default function WorkbooksNavBar() {
     const api = "/api/workbooks";
     const [workbooks, setWorkbooks] = useState<WorkbookInterface[]>([]);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<Error | null>(null);
     useEffect(() => {
         fetch(api, {
             method: "POST",
@@ -35,10 +35,13 @@ export default function NavBar() {
             })
             .catch((e) => {
                 console.log(e);
-                setError(e);
+                setError(new Error(e.message || "An unknown error occurred."));
             });
     }, []);
 
+    if (error) {
+        return <p>Error loading workbooks: {error.message}</p>;
+    }
     return (
         <Nav
             variant="pills"

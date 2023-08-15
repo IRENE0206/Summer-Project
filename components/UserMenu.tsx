@@ -13,9 +13,9 @@ export default function UserMenu({ info }: { info: UserInfoInterface | null }) {
         })
             .then((res) => {
                 if (res.ok) {
-                    console.log("Login out successful");
+                    console.log("Log out successful");
                 } else {
-                    throw new Error("Login failed");
+                    throw new Error("Logout failed");
                 }
             })
             .catch((error) => console.log("Log out failed"));

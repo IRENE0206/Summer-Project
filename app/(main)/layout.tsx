@@ -1,7 +1,7 @@
 "use client";
 import Container from "react-bootstrap/Container";
 
-import NavBar from "@/components/NavBar";
+import WorkbooksNavBar from "@/components/WorkbooksNavBar";
 import UserMenu from "@/components/UserMenu";
 import UserAuth from "@/utils/UserAuth";
 import UserInfo from "@/utils/UserInfo";
@@ -64,7 +64,7 @@ export default function MainLayout({
                                             </Link>
                                         </Row>
                                         <Row>
-                                            <NavBar />
+                                            <WorkbooksNavBar />
                                         </Row>
 
                                         <Row>

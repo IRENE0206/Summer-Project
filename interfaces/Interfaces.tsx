@@ -10,3 +10,9 @@ export interface UserInfoInterface {
     user_name: string;
     user_role: string;
 }
+
+export interface Line {
+    line_index: number;
+    variable: string;
+    rules: string;
+}

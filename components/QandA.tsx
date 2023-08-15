@@ -1,32 +1,48 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import GrammarInput from "./GrammarInput";
 import Col from "react-bootstrap/Col";
 import Form from "react-bootstrap/Form";
 import Row from "react-bootstrap/Row";
-import { InputGroup } from "react-bootstrap";
+
+import { Line } from "@/interfaces/Interfaces";
 
 export default function QandA({
-    defaultNum,
+    index,
     onDelete,
     isDeleteDisabled,
+    onChange,
 }: {
-    defaultNum: string;
+    index: number;
     onDelete: () => void;
     isDeleteDisabled: boolean;
+    onChange: (data: any) => void;
 }) {
     const [manuallyEdited, setManuallyEdited] = useState(false);
-    const [manualNum, setManualNum] = useState("");
-    const [number, setNumber] = useState(
-        manuallyEdited ? manualNum : defaultNum
-    );
+    const [number, setNumber] = useState<string>(index.toString());
     const [question, setQuestion] = useState("");
+    const [answer, setAnswer] = useState<Line[]>([
+        { line_index: 0, variable: "", rules: "" },
+    ]);
+    useEffect(() => {
+        if (!manuallyEdited) {
+            setNumber(index.toString());
+        }
+    }, [index, manuallyEdited]);
+
+    useEffect(() => {
+        onChange({
+            number,
+            question,
+            answer,
+        });
+    }, [number, question, answer, onChange]);
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
     };
 
     return (
-        <Form method="post" onSubmit={handleSubmit}>
+        <>
             <Form.Group as={Row}>
                 <Form.Label column>
                     Exercise Number:
@@ -36,7 +52,6 @@ export default function QandA({
                         onChange={(e) => {
                             setNumber(e.target.value);
                             setManuallyEdited(true);
-                            setManualNum(e.target.value);
                         }}
                     />
                 </Form.Label>
@@ -57,7 +72,7 @@ export default function QandA({
             <Form.Group as={Row}>
                 <Form.Label column>
                     Correct Answer:
-                    <GrammarInput />
+                    <GrammarInput value={answer} onChange={setAnswer} />
                 </Form.Label>
             </Form.Group>
 
@@ -65,6 +80,7 @@ export default function QandA({
                 <Col>
                     <button
                         type="button"
+                        value="Delete Exercise"
                         onClick={onDelete}
                         disabled={isDeleteDisabled}
                     >
@@ -72,6 +88,6 @@ export default function QandA({
                     </button>
                 </Col>
             </Form.Group>
-        </Form>
+        </>
     );
 }

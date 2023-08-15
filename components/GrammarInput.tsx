@@ -1,88 +1,93 @@
-import { useState } from "react";
-import Col from "react-bootstrap/Col";
 import Form from "react-bootstrap/Form";
-import Row from "react-bootstrap/Row";
 
 import InputGroup from "react-bootstrap/InputGroup";
+import { Line } from "@/interfaces/Interfaces";
 
-interface Line {
-    id: number;
-    variable: string;
-    rule: string;
-}
-/*
-interface GrammarInputProps {
-    lines: Line[];
-    onLineChange: (id: number, variable: string, rule: string) => void;
-    onAddLine: () => void;
-    onDeleteLine: (id: number) => void;
-} */
-
-export default function GrammarInput() {
-    const [lines, setLines] = useState<Line[]>([
-        { id: 0, variable: "", rule: "" },
-    ]);
+export default function GrammarInput({
+    value,
+    onChange,
+}: {
+    value: Line[];
+    onChange: (updatedLines: Line[]) => void;
+}) {
     const handleAddLine = () => {
-        setLines((prevLines) => [
-            ...prevLines,
-            { id: lines[prevLines.length - 1].id + 1, variable: "", rule: "" },
+        const index = value.length;
+        onChange([
+            ...value,
+            {
+                line_index: index,
+                variable: "",
+                rules: "",
+            },
         ]);
     };
-    const handleDeleteLine = (id: number) => {
-        if (lines.length === 1) {
-            return;
-        }
-        setLines((prevLines) => prevLines.filter((line) => line.id !== id));
+    const handleDeleteLine = (line_index: number) => {
+        if (value.length === 1) return;
+
+        onChange(
+            value
+                .filter((line) => line.line_index !== line_index)
+                .map((line, index) => ({
+                    ...line,
+                    line_index: index,
+                }))
+        );
     };
 
-    const handleChangeLineVariable = (id: number, variable: string) => {
-        setLines((prevLines) =>
-            prevLines.map((line) =>
-                line.id === id ? { ...line, variable: variable } : line
+    const handleChangeLineVariable = (line_index: number, variable: string) => {
+        onChange(
+            value.map((line) =>
+                line.line_index === line_index ? { ...line, variable } : line
             )
         );
     };
 
-    const handleChangeLineRule = (id: number, rule: string) => {
-        setLines((prevLines) =>
-            prevLines.map((line) =>
-                line.id === id ? { ...line, rule: rule } : line
+    const handleChangeLineRules = (line_index: number, rules: string) => {
+        onChange(
+            value.map((line) =>
+                line.line_index === line_index ? { ...line, rules } : line
             )
         );
     };
 
     return (
         <>
-            {lines.map((line) => (
-                <InputGroup key={line.id}>
+            {value.map((line) => (
+                <InputGroup key={line.line_index}>
                     <Form.Control
-                        aria-label="variable"
+                        aria-label="Grammar variable input"
                         type="search"
                         value={line.variable}
                         onChange={(e) =>
-                            handleChangeLineVariable(line.id, e.target.value)
+                            handleChangeLineVariable(
+                                line.line_index,
+                                e.target.value
+                            )
                         }
                     />
                     <InputGroup.Text>&rarr;</InputGroup.Text>
                     <Form.Control
-                        aria-label="rule"
+                        aria-label="Grammar rules input"
                         type="search"
-                        value={line.rule}
+                        value={line.rules}
                         onChange={(e) =>
-                            handleChangeLineRule(line.id, e.target.value)
+                            handleChangeLineRules(
+                                line.line_index,
+                                e.target.value
+                            )
                         }
                     />
                     <button
                         type="button"
-                        disabled={lines.length === 1}
-                        onClick={() => handleDeleteLine(line.id)}
+                        aria-label="Delete line"
+                        disabled={value.length === 1}
+                        onClick={() => handleDeleteLine(line.line_index)}
                     >
                         Delete
                     </button>
-                    <br />
                 </InputGroup>
             ))}
-            <button type="button" onClick={handleAddLine}>
+            <button type="button" aria-label="Add line" onClick={handleAddLine}>
                 Add new line
             </button>
         </>
