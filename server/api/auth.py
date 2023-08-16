@@ -5,8 +5,8 @@ from flask import (
 from sqlalchemy.exc import IntegrityError
 from flask_cors import CORS
 
-from .db import db, Users
-from .util import unauthorized, notfound, badrequest, conflict, succeed
+from .db import db, User
+from .util import unauthorized_handler, notfound_handler, badrequest_handler, conflict_handler, after_request, UserRole, succeed
 import secrets
 
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -18,6 +18,9 @@ CORS(bp)
 @bp.route("/register", methods=["POST"])
 def register():
     data = request.get_json()
+    
+    if not data:
+        return badrequest_handler("Invalid data format.")
     username = data.get("username")
     password = data.get("password")
     repeat_password = data.get("repeat_password")
@@ -31,54 +34,56 @@ def register():
         error = "Passwords do not match."
 
     if error is not None:
-        return badrequest(error)
+        return badrequest_handler(error)
 
     try:
-        role = "regular"
+        role = UserRole.REGULAR.value
+        # TODO: change the code to external configuration or database-driven roles
         if username == "gn22297":
-            role = "admin"
-        new_user = Users(username=username, password=generate_password_hash(password), role=role)
+            role = UserRole.ADMIN.value
+        new_user = User(username=username, password=generate_password_hash(password), role=role)
         db.session.add(new_user)
         db.session.commit()
     except IntegrityError:
         error = f"User {username} is already registered."
-        return conflict(error)
-    
+        return conflict_handler(error)
+    except Exception as e:
+        return badrequest_handler("An unexpected error occurred.")
+    session["user_id"] = new_user.user_id
     session["username"] = username
     session["user_role"] = role
     session["sessionIdentifier"] = generate_session_identifier()
-    return succeed("You have registered sucessfully", session_identifier=session["sessionIdentifier"])
+    return succeed("You have registered successfully", session_identifier=session["sessionIdentifier"], user_id=session["user_id"], user_name=session["username"], user_role=session["user_role"])
 
 
 @bp.route("/login", methods=["POST"])
 def login():
     session.clear()
     data = request.get_json()
+    if not data:
+        return badrequest_handler("Invalid data format.")
+
     username = data.get("username")
     password = data.get("password")
 
-    user = db.session.execute(
-        db.select(Users).filter_by(username=username)
-    ).scalar()
-
-    if user is None:
-        error = "Incorrect username"
-        return notfound(error)
+    user = db.one_or_404(
+        db.select(User).filter_by(username=username),
+        description=f"No user named '{username}'."
+    )
     if not check_password_hash(user.password, password):
-        error = "Incorrect password"
-        return conflict(error)
+        return badrequest_handler("Invalid credentials.")
         
     session["user_id"] = user.user_id
     session["user_role"] = user.role
     session["username"] = user.username
     session["sessionIdentifier"] = generate_session_identifier()
-    return succeed("You have logged in sucessfully", session_identifier=session["sessionIdentifier"])
+    return succeed("You have logged in successfully", session_identifier=session["sessionIdentifier"], user_id=session["user_id"], user_name=session["username"], user_role=session["user_role"])
 
 def login_required(f):
     @wraps(f)
     def wrapped_view(*args, **kwargs):
         if "user_id" not in session:
-            return badrequest("Login required")
+            return badrequest_handler("Login required")
 
         return f(*args, **kwargs)
 
@@ -102,30 +107,9 @@ def logout():
     session.clear()
     return succeed("Log out successful")
 
-@bp.errorhandler(401)
-def unauthorized_handler(error):
-    return unauthorized(error)
-
-@bp.errorhandler(404)
-def notfound_handler(error):
-    return notfound(error)
-
-@bp.errorhandler(400)
-def badrequest_handler(error):
-    return badrequest(error)
-
-@bp.errorhandler(409)
-def conflict_handler(error):
-    return conflict(error)
-
-
-@bp.after_request
-def after_request(response):
-    """Ensure responses aren't cached"""
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["Expires"] = 0
-    response.headers["Pragma"] = "no-cache"
-    return response
-
 def generate_session_identifier():
     return secrets.token_hex(16)
+
+@login_required
+def is_admin():
+    return session.get("user_role") == UserRole.ADMIN.value

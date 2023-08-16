@@ -4,26 +4,26 @@ from flask import (
 from datetime import datetime
 
 from sqlalchemy.exc import IntegrityError
-from .auth import login_required
-from .db import db, Workbooks, Exercises, Answers, Lines
-from .util import unauthorized, notfound, badrequest, conflict, succeed
+from .auth import login_required, is_admin
+from .db import db, Workbook, Exercise, Answer, Line
+from .util import (
+    UserRole, unauthorized_handler, notfound_handler, badrequest_handler, conflict_handler, after_request
+)
 from flask_cors import CORS
 
 bp = Blueprint('app', __name__, url_prefix="/api")
 CORS(bp)
 
-@bp.route("/workbooks", methods=["POST"])
+@bp.route("/workbooks", methods=["GET"])
 @login_required
 def get_workbooks():
-    role = session.get("user_role")
-
-    if role == "admin":
+    if is_admin():
         workbooks = db.session.execute(
-            db.select(Workbooks)
+            db.select(Workbook)
         ).scalars().all()
     else:
         workbooks = db.session.execute(
-            db.select(Workbooks).filter(Workbooks.release_date < datetime.now())
+            db.select(Workbook).filter(Workbook.release_date < datetime.now())
         ).scalars().all()
 # TODO: implementation
     '''
@@ -60,15 +60,17 @@ def edit_workbook():
 @bp.route("/workbook/new", methods=["POST"])
 @login_required
 def add_workbook():
+    if not is_admin():
+        unauthorized_handler("Only admin user can add new workbook")
     data = request.get_json()
     if not all(key in data for key in ["workbook_name", "release_date", "exercises"]):
-        return badrequest("Missing required fields for the workbook information")
+        return badrequest_handler("Missing required fields for the workbook information")
     workbook_name = data.get("workbook_name")
     release_date = data.get("release_date")
     last_edit = datetime.now()
     qandas = data.get("exercises", [])
     try:
-        workbook = Workbooks(workbook_name=workbook_name, release_date=release_date, last_edit=last_edit)
+        workbook = Workbook(workbook_name=workbook_name, release_date=release_date, last_edit=last_edit)
         db.session.add(workbook)
         db.session.flush()
         # TODO: extract exercises data and add them to database
@@ -79,14 +81,14 @@ def add_workbook():
             question_stripped = qanda['question'].strip()
             if not number_stripped and not question_stripped:
                 continue
-            exercise = Exercises(exercise_number=number_stripped, 
+            exercise = Exercise(exercise_number=number_stripped, 
                                  exercise_content=question_stripped,
                                  workbook_id=workbook.workbook_id)
             db.session.add(exercise)
             db.session.flush()
             
             # Storing answers for each exercise to the database
-            answer = Answers(feedback="", exercise_id=exercise.exercise_id, user_id=session.get("user_id"))
+            answer = Answer(feedback="", exercise_id=exercise.exercise_id, user_id=session.get("user_id"))
             db.session.add(answer)
             db.session.flush()
             for line in qanda['answer']:
@@ -96,15 +98,15 @@ def add_workbook():
                 variable_stripped = line["variable"].strip()
                 rules_stripped = line["rules"].strip()
                 if index_stripped or variable_stripped or rules_stripped:  
-                    line_entry = Lines(line_index=index_stripped, answer_id=answer.answer_id, variable=variable_stripped, rules=rules_stripped)
+                    line_entry = Line(line_index=index_stripped, answer_id=answer.answer_id, variable=variable_stripped, rules=rules_stripped)
                     db.session.add(line_entry)
         db.session.commit()
         return succeed("Created new workbook successfully")
     except IntegrityError:
         db.session.rollback()
         error = f"Workbook name {workbook_name} has already existed"
-        return conflict(error)
+        return conflict_handler(error)
     except Exception as e:
         db.session.rollback()
-        return badrequest(str(e))
+        return badrequest_handler(str(e))
    
