@@ -1,8 +1,14 @@
 from flask_sqlalchemy import SQLAlchemy
-from .util import UserRole
+from enum import Enum
+
 
 # Create the extension
 db = SQLAlchemy()
+
+
+class UserRole(Enum):
+    ADMIN = "admin"
+    REGULAR = "regular"
 
 
 class User(db.Model):  

@@ -5,9 +5,9 @@ from datetime import datetime
 
 from sqlalchemy.exc import IntegrityError
 from .auth import login_required, is_admin
-from .db import db, Workbook, Exercise, Answer, Line
+from .db import Workbook, Exercise, Answer, Line
 from .util import (
-    UserRole, unauthorized_handler, notfound_handler, badrequest_handler, conflict_handler, after_request
+    unauthorized_handler, notfound_handler, badrequest_handler, conflict_handler, after_request
 )
 from flask_cors import CORS
 

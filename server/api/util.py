@@ -1,28 +1,24 @@
 from flask import jsonify, Blueprint
 import secrets
-from enum import Enum
-
-class UserRole(Enum):
-    ADMIN = "admin"
-    REGULAR = "regular"
+from .db import UserRole
 
 bp = Blueprint("util", __name__)
 
 @bp.errorhandler(401)
-def unauthorized_handler(error):
-    return response_generator(401, str(error))
+def unauthorized_handler(message: str):
+    return response_generator(401, message)
 
 @bp.errorhandler(404)
-def notfound_handler(error):
-    return response_generator(404, str(error))
+def notfound_handler(message: str):
+    return response_generator(404, message)
 
 @bp.errorhandler(400)
-def badrequest_handler(error):
-    return response_generator(400, str(error))
+def badrequest_handler(message: str):
+    return response_generator(400, message)
 
 @bp.errorhandler(409)
-def conflict_handler(error):
-    return response_generator(409, str(error))
+def conflict_handler(message: str):
+    return response_generator(409, message)
 
 @bp.after_request
 def after_request(response):

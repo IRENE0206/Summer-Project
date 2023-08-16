@@ -5,8 +5,8 @@ from flask import (
 from sqlalchemy.exc import IntegrityError
 from flask_cors import CORS
 
-from .db import db, User
-from .util import unauthorized_handler, notfound_handler, badrequest_handler, conflict_handler, after_request, UserRole, succeed
+from .db import db, User, UserRole
+from .util import unauthorized_handler, notfound_handler, badrequest_handler, conflict_handler, after_request, succeed
 import secrets
 
 from werkzeug.security import check_password_hash, generate_password_hash
