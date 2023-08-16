@@ -12,7 +12,7 @@ class User(db.Model):
     role = db.Column(db.Enum(UserRole), nullable=False)
 
     # Relationships
-    answers = db.relationship("Answer", back_populates="user")
+    answers = db.relationship("Answer", back_populates="user", lazy="dynamic")
 
 
 class Workbook(db.Model): 
@@ -22,7 +22,7 @@ class Workbook(db.Model):
     last_edit = db.Column(db.Date, nullable=False) 
 
     # Relationships
-    exercises = db.relationship("Exercise", back_populates="workbook", lazy='dynamic')
+    exercises = db.relationship("Exercise", back_populates="workbook", lazy="dynamic")
 
 
 class Exercise(db.Model): 
@@ -33,7 +33,7 @@ class Exercise(db.Model):
 
     # Relationships
     workbook = db.relationship("Workbook", back_populates="exercises")
-    answers = db.relationship("Answer", back_populates="exercise", lazy='dynamic')
+    answers = db.relationship("Answer", back_populates="exercise", lazy="dynamic")
 
 
 class Answer(db.Model): 
@@ -45,7 +45,7 @@ class Answer(db.Model):
     # Relationships
     user = db.relationship("User", back_populates="answers")
     exercise = db.relationship("Exercise", back_populates="answers")
-    lines = db.relationship("Line", back_populates="answer", lazy='dynamic')
+    lines = db.relationship("Line", back_populates="answer", lazy="dynamic")
 
 
 class Line(db.Model): 
