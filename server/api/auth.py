@@ -21,6 +21,9 @@ def register():
     
     if not data:
         return badrequest_handler("Invalid data format.")
+    if not all(key in data for key in ["username", "password", "repeat_password"]):
+        return badrequest_handler("Missing required fields for registration")
+    
     username = data.get("username")
     password = data.get("password")
     repeat_password = data.get("repeat_password")
@@ -62,7 +65,8 @@ def login():
     data = request.get_json()
     if not data:
         return badrequest_handler("Invalid data format.")
-
+    if not all(key in data for key in ["username", "password"]):
+        return badrequest_handler("Missing required fields for login")
     username = data.get("username")
     password = data.get("password")
 

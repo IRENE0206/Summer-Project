@@ -25,30 +25,24 @@ def get_workbooks():
         workbooks = db.session.execute(
             db.select(Workbook).filter(Workbook.release_date < datetime.now())
         ).scalars().all()
-# TODO: implementation
-    '''
-    workbooks = db.session.execute(
-            db.select(Workbooks)
-        ).scalars().all()
-        '''
-    
-    '''
-    workbooks_data = []
-    for workbook in workbooks:
-        workbook_data = {
-            "workbook_id": workbook.workbook_id,
-            "workbook_name": workbook.workbook_name,
-            "release_date": workbook.release_date,
-            "last_edit": workbook.last_edit,
-        }
-        workbooks_data.append(workbook_data)
-        '''
-    return jsonify(workbooks)
+
+    return jsonify([{
+        "workbook_id": workbook.workbook_id,
+        "workbook_name": workbook.workbook_name,
+        "release_date": workbook.release_date,
+        "last_edit": workbook.last_edit
+    } for workbook in workbooks])
 
 @bp.route("/workbook/<int:workbook_id>/edit", methods=["POST"])
 @login_required
 def edit_workbook():
+    if not is_admin():
+        return unauthorized_handler("Only admin user can edit workbooks")
+    
     data = request.get_json()
+    if not data:
+        return badrequest_handler("Invalid data format.")
+    
     workbook_id = data.get("workbook_id")
     
     workbooks = db.session.execute(
@@ -61,8 +55,11 @@ def edit_workbook():
 @login_required
 def add_workbook():
     if not is_admin():
-        unauthorized_handler("Only admin user can add new workbook")
+        return unauthorized_handler("Only admin user can add new workbook")
     data = request.get_json()
+    if not data:
+        return badrequest_handler("Invalid data format.")
+    
     if not all(key in data for key in ["workbook_name", "release_date", "exercises"]):
         return badrequest_handler("Missing required fields for the workbook information")
     workbook_name = data.get("workbook_name")
@@ -94,11 +91,11 @@ def add_workbook():
             for line in qanda['answer']:
                 if not all(key in line for key in ["line_index", "variable", "rules"]):
                     raise ValueError("Missing required fields in answer data")
-                index_stripped = line["line_index"].strip()
+                index = line["line_index"]
                 variable_stripped = line["variable"].strip()
                 rules_stripped = line["rules"].strip()
-                if index_stripped or variable_stripped or rules_stripped:  
-                    line_entry = Line(line_index=index_stripped, answer_id=answer.answer_id, variable=variable_stripped, rules=rules_stripped)
+                if index or variable_stripped or rules_stripped:  
+                    line_entry = Line(line_index=index, answer_id=answer.answer_id, variable=variable_stripped, rules=rules_stripped)
                     db.session.add(line_entry)
         db.session.commit()
         return succeed("Created new workbook successfully")

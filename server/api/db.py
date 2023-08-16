@@ -14,11 +14,6 @@ class User(db.Model):
     # Relationships
     answers = db.relationship("Answer", back_populates="user")
 
-    # Ensure the role is one of the UserRole values
-    __table_args__ = (
-        db.CheckConstraint(f"role IN ({', '.join([f'{repr(role.value)}' for role in UserRole])})"),  
-    )
-
 
 class Workbook(db.Model): 
     workbook_id = db.Column(db.Integer, primary_key=True, autoincrement=True) 
@@ -27,7 +22,7 @@ class Workbook(db.Model):
     last_edit = db.Column(db.Date, nullable=False) 
 
     # Relationships
-    exercises = db.relationship("Exercise", back_populates="workbook")
+    exercises = db.relationship("Exercise", back_populates="workbook", lazy='dynamic')
 
 
 class Exercise(db.Model): 
@@ -38,7 +33,7 @@ class Exercise(db.Model):
 
     # Relationships
     workbook = db.relationship("Workbook", back_populates="exercises")
-    answers = db.relationship("Answer", back_populates="exercise")
+    answers = db.relationship("Answer", back_populates="exercise", lazy='dynamic')
 
 
 class Answer(db.Model): 
@@ -50,7 +45,7 @@ class Answer(db.Model):
     # Relationships
     user = db.relationship("User", back_populates="answers")
     exercise = db.relationship("Exercise", back_populates="answers")
-    lines = db.relationship("Line", back_populates="answer")
+    lines = db.relationship("Line", back_populates="answer", lazy='dynamic')
 
 
 class Line(db.Model): 
