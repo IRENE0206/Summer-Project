@@ -1,6 +1,6 @@
 from flask import jsonify, Blueprint
 import secrets
-from .db import UserRole
+
 
 bp = Blueprint("util", __name__)
 

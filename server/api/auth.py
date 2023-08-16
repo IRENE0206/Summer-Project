@@ -21,23 +21,17 @@ def register():
     
     if not data:
         return badrequest_handler("Invalid data format.")
-    if not all(key in data for key in ["username", "password", "repeat_password"]):
-        return badrequest_handler("Missing required fields for registration")
-    
+       
     username = data.get("username")
     password = data.get("password")
     repeat_password = data.get("repeat_password")
-    error = None
 
     if not username:
-        error = "Username is required."
-    elif not password:
-        error = "Password is required."
-    elif password != repeat_password:
-        error = "Passwords do not match."
-
-    if error is not None:
-        return badrequest_handler(error)
+        return badrequest_handler("Username is required.")
+    if not password:
+        return badrequest_handler("Password is required.")
+    if password != repeat_password:
+        return badrequest_handler("Passwords do not match.")
 
     try:
         role = UserRole.REGULAR.value
@@ -48,31 +42,39 @@ def register():
         db.session.add(new_user)
         db.session.commit()
     except IntegrityError:
-        error = f"User {username} is already registered."
-        return conflict_handler(error)
+        return conflict_handler(f"User {username} is already registered.")
     except Exception as e:
         return badrequest_handler("An unexpected error occurred.")
     session["user_id"] = new_user.user_id
     session["username"] = username
     session["user_role"] = role
     session["sessionIdentifier"] = generate_session_identifier()
-    return succeed("You have registered successfully", session_identifier=session["sessionIdentifier"], user_id=session["user_id"], user_name=session["username"], user_role=session["user_role"])
+    return succeed(
+        "You have registered successfully", 
+        session_identifier=session["sessionIdentifier"], 
+        user_id=session["user_id"], 
+        user_name=session["username"], 
+        user_role=session["user_role"]
+    )
 
 
 @bp.route("/login", methods=["POST"])
 def login():
     session.clear()
     data = request.get_json()
+
     if not data:
         return badrequest_handler("Invalid data format.")
+    
     if not all(key in data for key in ["username", "password"]):
         return badrequest_handler("Missing required fields for login")
+
     username = data.get("username")
     password = data.get("password")
 
     user = db.one_or_404(
         db.select(User).filter_by(username=username),
-        description=f"No user named '{username}'."
+        description=f"No user named '{username}' found."
     )
     if not check_password_hash(user.password, password):
         return badrequest_handler("Invalid credentials.")
@@ -81,7 +83,13 @@ def login():
     session["user_role"] = user.role
     session["username"] = user.username
     session["sessionIdentifier"] = generate_session_identifier()
-    return succeed("You have logged in successfully", session_identifier=session["sessionIdentifier"], user_id=session["user_id"], user_name=session["username"], user_role=session["user_role"])
+    return succeed(
+        "You have logged in successfully", 
+        session_identifier=session["sessionIdentifier"], 
+        user_id=session["user_id"], 
+        user_name=session["username"], 
+        user_role=session["user_role"]
+    )
 
 def login_required(f):
     @wraps(f)
@@ -93,8 +101,8 @@ def login_required(f):
 
     return wrapped_view
 
-@bp.route("/user", methods=["POST"])
 @login_required
+@bp.route("/user", methods=["POST"])
 def get_user():
     return get_session_user()
 
@@ -114,6 +122,5 @@ def logout():
 def generate_session_identifier():
     return secrets.token_hex(16)
 
-@login_required
 def is_admin():
     return session.get("user_role") == UserRole.ADMIN.value
