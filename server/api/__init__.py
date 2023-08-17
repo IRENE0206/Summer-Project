@@ -48,8 +48,8 @@ def create_app(test_config=None):
     # Register blueprints
     app.register_blueprint(util.bp)
     app.register_blueprint(auth.bp)
-
     app.register_blueprint(run.bp)
+    app.register_blueprint(parser.bp)
 
     app.add_url_rule("/", endpoint="api")
 

@@ -1,8 +1,10 @@
 from flask import jsonify, Blueprint
+from flask_cors import CORS
 import secrets
 
 
 bp = Blueprint("util", __name__)
+CORS(bp)
 
 @bp.errorhandler(401)
 def unauthorized_handler(message: str):

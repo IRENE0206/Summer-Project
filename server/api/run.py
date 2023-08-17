@@ -5,17 +5,17 @@ from datetime import datetime
 
 from sqlalchemy.exc import IntegrityError
 from .auth import login_required, is_admin
-from .db import Workbook, Exercise, Answer, Line
+from .db import db, Workbook, Exercise, Answer, Line
 from .util import (
     unauthorized_handler, notfound_handler, badrequest_handler, conflict_handler, after_request
 )
 from flask_cors import CORS
 
-bp = Blueprint('app', __name__, url_prefix="/api")
+bp = Blueprint("app", __name__, url_prefix="/api")
 CORS(bp)
 
-@bp.route("/workbooks", methods=["GET"])
 @login_required
+@bp.route("/workbooks", methods=["GET"])
 def get_workbooks():
     if is_admin():
         workbooks = db.session.execute(
@@ -33,8 +33,8 @@ def get_workbooks():
         "last_edit": workbook.last_edit
     } for workbook in workbooks])
 
-@bp.route("/workbook/<int:workbook_id>/edit", methods=["POST"])
 @login_required
+@bp.route("/workbook/<int:workbook_id>/edit", methods=["POST"])
 def edit_workbook():
     if not is_admin():
         return unauthorized_handler("Only admin user can edit workbooks")
@@ -51,8 +51,8 @@ def edit_workbook():
     # TODO: implementation
 
 
-@bp.route("/workbook/new", methods=["POST"])
 @login_required
+@bp.route("/workbook/new", methods=["POST"])
 def add_workbook():
     if not is_admin():
         return unauthorized_handler("Only admin user can add new workbook")
@@ -106,4 +106,5 @@ def add_workbook():
     except Exception as e:
         db.session.rollback()
         return badrequest_handler(str(e))
-   
+
+
