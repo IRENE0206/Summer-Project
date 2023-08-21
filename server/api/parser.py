@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from .db import Line, Answer, db, Exercise
 from flask_cors import CORS
-from .grammar import Symbol, Grammar
+from .grammar import Symbol, Rule, Grammar
 
 bp = Blueprint("parser", __name__)
 CORS(bp)
@@ -43,7 +43,7 @@ def get_lines_ordered_dict(exercise_id: int, user_id: int) -> OrderedDict[str, s
 
 def transform_ordered_dict(ordered_dict: OrderedDict) -> OrderedDict:
     """
-    Convert the ordered dict keys into Symbol instances and the rules into lists of Symbol instances.
+    Convert the ordered dict keys into Symbol instances and the rules into a set of Rule instances.
     """
     new_ordered_dict = OrderedDict()
     non_terminals = ordered_dict.keys()

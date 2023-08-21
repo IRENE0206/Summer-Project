@@ -44,6 +44,7 @@ class Exercise(db.Model):
 
 class Answer(db.Model): 
     answer_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    # feedback generated in the equivalence checking algorithm
     feedback = db.Column(db.String, nullable=False)
     exercise_id = db.Column(db.Integer, db.ForeignKey("exercise.exercise_id"), nullable=False)  
     user_id = db.Column(db.Integer, db.ForeignKey("user.user_id"), nullable=False)
@@ -58,7 +59,9 @@ class Line(db.Model):
     line_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     line_index = db.Column(db.Integer, nullable=False) 
     answer_id = db.Column(db.Integer, db.ForeignKey("answer.answer_id"), nullable=False)  
+    # The user input before the "→" in a line of grammar
     variable = db.Column(db.String, nullable=False) 
+    # The user input after the "→" in a line of grammar
     rules = db.Column(db.String, nullable=False)
 
     # Relationships

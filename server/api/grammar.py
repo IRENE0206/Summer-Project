@@ -28,46 +28,43 @@ class Grammar:
         """
         Eliminate all unit rules of the form A -> B
         """
-        has_unit_rules  = True
-        while has_unit_rules:
-            has_unit_rules = False
-            for var, rule_set in self.rules.items():
+        changed = True
+        while changed:
+            changed = False
+            for var, rule_set in list(self.rules.items()):
+                rules_to_remove = set()
+                rules_to_add = set()
                 for rule in list(rule_set):
                     if len(rule) == 1:
                         unit_rule = rule[0]
                         if not unit_rule.is_terminal:
-                            has_unit_rules  = True
-                            self._rules[var].remove(rule)
-                            self._rules[var].update(self.rules[unit_rule.symbol])
-    
+                            rules_to_remove.add(rule)
+                            rules_to_add.update(self.rules[unit_rule])
+                            changed = True
+                # Remove the identified unit rules
+                self.rules[var] -= rules_to_remove
+                # Add new rules to the current variable
+                self.rules[var].update(rules_to_add)
+
 
     def _produce_m_handles(self) -> None:
         need_production = True
         while need_production:
             need_production = False
             for var, rule_set in list(self.rules.items()):
+                rules_to_remove = set()
+                rules_to_add = set()
                 for rule in list(rule_set):
                     first_symbol = rule[0]
                     if not first_symbol.is_terminal:
                         need_production = True
-                        self._rules[var].remove(rule)
+                        rules_to_remove.add(rule)
                         for r in self.rules[first_symbol]:
-                            self._rules[var][:0] = self.rules[first_symbol]
-
-    def _shortest_m_handle_length(self) -> int:
-        """Get the minimum length of the terminal string t_i on the right side of the rules."""
-        min_len = float('inf')
-        for rules_set in self.rules.values():
-            for rule in rules_set:
-                terminal_string_length = 0
-                for symbol in rule:
-                    # Stop counting if encounter a non-terminal
-                    if not symbol.is_terminal:
-                        break
-                    terminal_string_length += 1
-                if terminal_string_length < min_len:
-                    min_len = terminal_string_length 
-        return min_len
+                            rules_to_add.update(r + rule[1:])
+                # Remove the identified rules
+                self.rules[var] -= rules_to_remove
+                # Add new rules to the current variable
+                self.rules[var].update(rules_to_add)
 
     def _replace_m_handles(self) -> None:
         replace_m_handles = True
