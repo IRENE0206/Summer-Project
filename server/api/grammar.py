@@ -24,7 +24,7 @@ class Terminal(Symbol):
 
     # Can be used to determine if two terminal instances represent the same terminal symbol
     def is_equivalent_to(self, other_terminal: "Terminal") -> bool:
-        return isinstance(other, Terminal) and (self.string == other.string)
+        return isinstance(other_terminal, Terminal) and (self.string == other_terminal.string)
 
     def get_shortest_string_derivable(self) -> str:
         return self.string
@@ -34,9 +34,9 @@ class Terminal(Symbol):
 
 
 class NonTerminal(Symbol):
-    def __init__(self, rules_list: list["Rule"]):
+    def __init__(self, rules_list: list["Rule"] = []):
         super().__init__()
-        self.rules_list = rules_list
+        self.rules_list = rules_list if rules_list else []
 
 
     def add_rule(self, rule: "Rule"):
@@ -49,7 +49,7 @@ class NonTerminal(Symbol):
 
 
     def has_and_only_has_rule(self, rule_symbols: list[Symbol]) -> bool:
-        return len(self.rules_list) == 0 and self.rules_list[0].symbols_list == rule_symbols
+        return len(self.rules_list) == 1 and self.rules_list[0].symbols_list == rule_symbols
 
 
     def get_all_leftmost_terminals_derivable(self) -> list[str]:
@@ -63,7 +63,7 @@ class NonTerminal(Symbol):
         for rule in self.rules_list:
             shortest_from_rule = ""
             for symbol in rule.symbols_list:
-                shortest_from_symbol = self.get_shortest_string_derivable()
+                shortest_from_symbol = symbol.get_shortest_string_derivable()
                 shortest_from_rule += shortest_from_symbol
             if len(shortest_from_rule) < min_length:
                 shortest = shortest_from_rule
@@ -75,20 +75,20 @@ class NonTerminal(Symbol):
 
 
 class Rule:
-    def __init__(self, symbols_list: list[Symbol]):
-        self.symbols_list = symbols_list
+    def __init__(self, symbols_list: list[Symbol] = []):
+        self.symbols_list = symbols_list if symbols_list else []
 
-    def is_unit_rule(self) -> tuple(bool, NonTerminal):
+    def is_unit_rule(self) -> tuple[bool, NonTerminal]:
         first_symbol = self.symbols_list[0]
-        if len(self.symbols_list) != 1 or first_symbol.is_terminal:
-            return false, None
+        if len(self.symbols_list) != 1 or first_symbol.is_terminal():
+            return False, None
         return True, first_symbol
     
     def has_m_handle(self) -> bool:
         return self.symbols_list[0].is_terminal
 
     def has_standard_handle(self) -> tuple[bool, list[Symbol]]:
-        if (not self.has_m_handle()) or ((len(self.symbols_list) > 1) and self.symbols_list[1].is_terminal):
+        if (not self.has_m_handle()) or ((len(self.symbols_list) > 1) and self.symbols_list[1].is_terminal()):
             return False, self.symbols_list[1:]
         return  True, None
     
