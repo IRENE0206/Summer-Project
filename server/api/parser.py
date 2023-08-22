@@ -1,7 +1,7 @@
 from .db import Line, Answer, db, Exercise
 from flask import Blueprint
 from flask_cors import CORS
-from .grammar import Symbol, NonTerminal, Terminal, Rule, Grammar
+from .grammar import NonTerminal, Terminal, Rule, Grammar
 
 bp = Blueprint("parser", __name__)
 CORS(bp)
@@ -34,7 +34,7 @@ def get_grammar(exercise_id: int, user_id: int) -> Grammar:
 def process_lines(lines) -> Grammar:
     non_terminal_strings = set([line.variable.strip() for line in lines])
     # map each distinct non_terminal string with a NonTerminal instance
-    non_terminal_dict = {non_terminal_string: NonTerminal([]) for non_terminal_string in non_terminal_strings} 
+    non_terminal_dict = {non_terminal_string: NonTerminal() for non_terminal_string in non_terminal_strings}
     # map each distinct terminal symbol string with a Terminal instance
     terminal_dict = {}
 

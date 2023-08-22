@@ -1,3 +1,6 @@
+from collections import Counter
+
+
 class Symbol:
     def __init__(self):
         pass
@@ -34,17 +37,17 @@ class Terminal(Symbol):
 
 
 class NonTerminal(Symbol):
-    def __init__(self, rules_list: list["Rule"] = []):
+    def __init__(self, rules_list: list["Rule"] = None):
         super().__init__()
         self.rules_list = rules_list if rules_list else []
 
 
-    def add_rule(self, rule: "Rule"):
+    def add_rule(self, rule: "Rule") -> None:
         if rule not in self.rules_list:
             self.rules_list.append(rule)
 
 
-    def remove_rule(self, rule: "Rule"):
+    def remove_rule(self, rule: "Rule") -> None:
         self.rules_list.remove(rule)
 
 
@@ -52,9 +55,8 @@ class NonTerminal(Symbol):
         return len(self.rules_list) == 1 and self.rules_list[0].symbols_list == rule_symbols
 
 
-    def get_all_leftmost_terminals_derivable(self) -> list[str]:
-        # Only after converting to S-grammar
-        return [rule.symbols_list[0].string for rule in self.rules_list]
+    def get_all_leftmost_terminals_derivable(self) -> list[Symbol]:
+        return [rule.symbols_list[0] for rule in self.rules_list]
     
 
     def get_shortest_string_derivable(self) -> str:
@@ -69,25 +71,34 @@ class NonTerminal(Symbol):
                 shortest = shortest_from_rule
         return shortest
 
+    def derive_terminal_symbol(self, terminal_symbol: str) -> tuple[bool, list | None]:
+        # Only used after each rule is in standard form
+        for rule in self.rules_list:
+            first_symbol = rule.symbols_list[0]
+            assert first_symbol.is_terminal()
+            assert isinstance(first_symbol, Terminal)
+            if first_symbol.string == terminal_symbol:
+                return True, rule.symbols_list[1:]
+        return False, None
 
     def is_terminal(self):
         return False
 
 
 class Rule:
-    def __init__(self, symbols_list: list[Symbol] = []):
+    def __init__(self, symbols_list: list[Symbol] = None):
         self.symbols_list = symbols_list if symbols_list else []
 
-    def is_unit_rule(self) -> tuple[bool, NonTerminal]:
+    def is_unit_rule(self) -> tuple[bool, Symbol | None]:
         first_symbol = self.symbols_list[0]
         if len(self.symbols_list) != 1 or first_symbol.is_terminal():
             return False, None
         return True, first_symbol
     
     def has_m_handle(self) -> bool:
-        return self.symbols_list[0].is_terminal
+        return self.symbols_list[0].is_terminal()
 
-    def has_standard_handle(self) -> tuple[bool, list[Symbol]]:
+    def has_standard_handle(self) -> tuple[bool, list[Symbol] | None]:
         if (not self.has_m_handle()) or ((len(self.symbols_list) > 1) and self.symbols_list[1].is_terminal()):
             return False, self.symbols_list[1:]
         return  True, None
@@ -126,6 +137,7 @@ class Grammar:
                 for rule in non_terminal.rules_list:
                     is_unit_rule, unit_rule_non_terminal = rule.is_unit_rule()
                     if is_unit_rule:
+                        assert isinstance(unit_rule_non_terminal, NonTerminal)
                         has_unit_rules = True
                         non_terminal.remove_rule(rule)
                         [non_terminal.add_rule(r) for r in unit_rule_non_terminal.rules_list]
@@ -137,7 +149,6 @@ class Grammar:
     def _produce_m_handles(self) -> None:
         for non_terminal in self.non_terminals:
             rules_to_examine = non_terminal.rules_list.copy()
-            rules_examined = []
             while len(rules_to_examine) > 0:
                 rules_examined = []
                 for rule in rules_to_examine:
@@ -145,19 +156,17 @@ class Grammar:
                         rules_examined.append(rule)
                     else:
                         first_symbol = rule.symbols_list[0]
-                        # first_symbol is a NonTerminal
+                        assert isinstance(first_symbol, NonTerminal)
                         rule.symbols_list[:0] = first_symbol.rules_list
                 [rules_to_examine.remove(r) for r in rules_examined]
 
 
     def _produce_standard_handles(self) -> None:
         non_terminals_to_examine = self.non_terminals.copy()
-        non_terminals_examined = []
         while len(non_terminals_to_examine) > 0:
             non_terminals_examined = []
             for non_terminal in non_terminals_to_examine:
                 rules_to_examine = non_terminal.rules_list.copy()
-                rules_examined = []
                 while len(rules_to_examine) > 0:
                     rules_examined = []
                     for rule in rules_to_examine:
@@ -177,7 +186,7 @@ class Grammar:
             [non_terminals_to_examine.remove(n) for n in non_terminals_examined]
 
 
-    def _find_non_terminal_for_rule(self, rule_symbols: list[Symbol]) -> tuple[bool, NonTerminal]:
+    def _find_non_terminal_for_rule(self, rule_symbols: list[Symbol]) -> tuple[bool, NonTerminal | None]:
         for non_terminal in self.non_terminals:
             if non_terminal.has_and_only_has_rule(rule_symbols):
                 return True, non_terminal
@@ -191,7 +200,7 @@ class Grammar:
                 rule_has_non_handle_terminal, index_list = rule.has_non_handle_terminal_symbols()
                 if rule_has_non_handle_terminal:
                     for index in index_list:
-                        terminal_symbol = rule.symbols_list[i]
+                        terminal_symbol = rule.symbols_list[index]
                         find_existing_non_terminal, existing_non_terminal = self._find_non_terminal_for_rule([terminal_symbol])
                         if find_existing_non_terminal:
                             rule.symbols_list[index] = existing_non_terminal
@@ -208,135 +217,116 @@ class Grammar:
             self._produce_standard_handles()
             self._eliminate_unit_rules()
             self.is_s_grammar = True
-        
 
-
-    def _derive_terminal_symbol_from_non_terminal(self, non_terminal: Symbol, terminal: str) -> tuple[bool, list]:
-        for rule in self.rules[non_terminal]:
-            first_symbol = rule[0]
-            if first_symbol.is_terminal:
-                return (first_symbol.symbol == terminal), rule[1:]
-            is_derivable, rule_after_derivation = self._derive_terminal_symbol_from_non_terminal(first_symbol, terminal)
-            if is_derivable:
-                return True, rule_after_derivation
-        return False, [non_terminal]
-
-
-    def _derive_terminal_symbol_from_rule(self, rule: list, terminal: str) -> tuple[bool, list]:
-        first_symbol = rule[0]
-        if first_symbol.is_terminal:
-            if first_symbol.symbol == terminal:
-                return True, rule[1:]
-            return False, rule
-        is_derivable, after_derivation = self._derive_terminal_symbol_from_non_terminal(first_symbol, terminal)
-        return is_derivable, (after_derivation + rule[1:])
-
-
-    def _derive_terminal_string_from_rule(self, rule: list, string: str) -> tuple[bool, list]:
-        if len(rule) == 0 and len(string) > 0:
-            return False, []
-        first_terminal_symbol = string[0]
-        is_derivable, rule_after_derivation = self._derive_terminal_symbol_from_rule(rule, first_terminal_symbol)
-        if not is_derivable:
-            return False, rule_after_derivation
-        elif len(string) == 1:
-            return True, rule_after_derivation
-        return self._derive_terminal_string_from_rule(rule_after_derivation, string[1:])
-
-
-    # l(k) = length of the shortest terminal string derivable from the kth non-terminal symbol of "Grammar" G
-    # l = max{l(k)}
     def calculate_l(self) -> int:
-        max_length = 0
-        for variable in self.rules.keys():
-            shortest_derivable = self._find_shortest_string_derivable_from_symbol(variable)
-            lk = len(shortest_derivable)
-            if lk > max_length:
-                max_length = lk
-        return max_length
+        l = 0
+        for non_terminal in self.non_terminals:
+            l = max(l, len(non_terminal.get_shortest_string_derivable()))
+        return l
 
-    # If S1 ≡ S2 then each leftmost terminal symbol,
-    # derivable from S1 must also be a leftmost symbol derivable from S2, and vice-versa
-    def _replace_type_a(self, answer: "Grammar", l_max: int, left: list[Symbol], right: list[Symbol], left_feedback: str, right_feedback: str) -> tuple[bool, str, str]:
-        # type A replacement
+
+def derive_terminal_symbol_from_rule(rule: list[Symbol], terminal: str) -> tuple[bool, int, list[Symbol] | None]:
+    first_symbol = rule[0]
+    if first_symbol.is_terminal():
+        assert isinstance(first_symbol, Terminal)
+        if first_symbol.string == terminal:
+            return True, 0, rule[1:]
+        return False, 0, None
+    assert isinstance(first_symbol, NonTerminal)
+    is_derivable, after_derivation = first_symbol.derive_terminal_symbol(terminal)
+    return is_derivable, len(after_derivation), (after_derivation + rule[1:])
+
+
+def derive_terminal_string_from_rule(rule: list[Symbol], string: str) -> tuple[bool, int, list[Symbol] | None]:
+    if len(rule) == 0 and len(string) > 0:
+        return False, 0, None
+    first_terminal_symbol = string[0]
+    is_derivable, new_symbols_count, rule_after_derivation = derive_terminal_symbol_from_rule(rule, first_terminal_symbol)
+    if not is_derivable:
+        return False, 0, None
+    if len(string) == 1:
+        return True, new_symbols_count, rule_after_derivation
+    is_derivable, new_symbols_count_next, rule_after_derivation = derive_terminal_string_from_rule(rule_after_derivation, string[1:])
+    return is_derivable, (new_symbols_count + new_symbols_count_next), rule_after_derivation
+
+def calculate_l_max(g1: Grammar, g2: Grammar) -> int:
+    # l_max = max{l_1, l_2}
+    return max(g1.calculate_l(), g2.calculate_l())
+
+
+def choose_type(l_max: int, left: list[Symbol], right: list[Symbol], prev_left_feedback: str, prev_right_feedback: str) -> tuple[bool, str, str]:
+    if (not left) and (not right):
+        return True, prev_left_feedback, prev_right_feedback
+
+    # choose type B when equivalence pair generated has a left side of length greater than l_max + 2
+    if len(left) > l_max + 2:
+        return replace_type_b(l_max, left, right, prev_left_feedback, prev_right_feedback)
+    return replace_type_a(l_max, left, right, prev_left_feedback, prev_right_feedback)
+
+
+# type A replacement
+def replace_type_a(l_max: int, left: list[Symbol], right: list[Symbol], prev_left_feedback: str, prev_right_feedback: str) -> tuple[bool, str | None, str | None]:
         leftmost_terminals_derivable_left = left[0].get_all_leftmost_terminals_derivable()
         leftmost_terminals_derivable_right = right[0].get_all_leftmost_terminals_derivable()
-        left_feedback_new = left_feedback
-        right_feedback_new = right_feedback
-        if leftmost_terminals_derivable_left != leftmost_terminals_derivable_right:
-            left_feedback_new += [leftmost_terminals_derivable_left - leftmost_terminals_derivable_right][0]
-            right_feedback_new += [leftmost_terminals_derivable_right - leftmost_terminals_derivable_left][0]
-            return False, left_feedback_new, right_feedback_new
-        
+        left_feedback = prev_left_feedback
+        right_feedback = prev_right_feedback
+        if Counter(leftmost_terminals_derivable_left) != Counter(leftmost_terminals_derivable_right):
+            left_feedback += [terminal_symbol for terminal_symbol in leftmost_terminals_derivable_left if terminal_symbol not in leftmost_terminals_derivable_right][0]
+            right_feedback += [terminal_symbol for terminal_symbol in leftmost_terminals_derivable_right if terminal_symbol not in leftmost_terminals_derivable_left][0]
+            return False, left_feedback, right_feedback
+
         for terminal in leftmost_terminals_derivable_left:
-            left_feedback_new = left_feedback + terminal
-            right_feedback_new = right_feedback + terminal
-            left_is_derivable, left_after_derivation = self._derive_terminal_symbol_from_rule(left, terminal)
-            right_is_derivable, right_after_derivation = answer._derive_terminal_symbol_from_rule(right, terminal)
-            is_equivalent, left_feedback_new, right_feedback_new = self._choose_type(answer, l_max, left_new, right_rule_after_derivation, left_feedback_new, right_feedback_new)
-            if not is_equivalent:
+            left_feedback = left_feedback + terminal
+            right_feedback = right_feedback + terminal
+            left_is_derivable, count_left, left_after_derivation = derive_terminal_symbol_from_rule(left, terminal)
+            right_is_derivable, count_right, right_after_derivation = derive_terminal_symbol_from_rule(right, terminal)
+            left_right_is_equivalent, left_feedback_new, right_feedback_new = choose_type(l_max, left_after_derivation,
+                                                                                     right_after_derivation,
+                                                                                     left_feedback,
+                                                                                     right_feedback)
+            if not left_right_is_equivalent:
                 return False, left_feedback_new, right_feedback_new
-        return True, left_feedback_new, right_feedback_new
+        return True, None, None
 
 
-    def _replace_type_b(self, answer: "Grammar", l_max: int, left: list[Symbol], right: list[Symbol], left_feedback: str, right_feedback: str) -> tuple[bool, str, str]:
-            # type B replacement
-            # t, the shortest terminal string derivable from the leftmost non terminal
-            t = self._find_shortest_string_derivable_from_symbol(left[0])
-            
-            new_left_feedback = left_feedback + t
-            is_t_derivable, right_rule_after_derivation = answer._derive_terminal_string_from_rule(right, t)
-            if not is_t_derivable:
-                return False, new_left_feedback, right_feedback
-            left_new = left[1:]
-            
-            new_right_feedback = right_feedback + t
-            return self._choose_type(answer, l_max, left_new, right_rule_after_derivation, new_left_feedback, new_right_feedback)
+# type B replacement
+def replace_type_b(l_max: int, left: list[Symbol], right: list[Symbol], prev_left_feedback: str,
+                    prev_right_feedback: str) -> tuple[bool, str | None, str | None]:
+    # t, the shortest terminal string derivable from the leftmost symbol of left side
+    t = left[0].get_shortest_string_derivable()
+
+    left_feedback = prev_left_feedback + t
+    is_t_derivable_from_right, added_symbols_count, right_rule_after_derivation = derive_terminal_string_from_rule(right, t)
+    if not is_t_derivable_from_right:
+        return False, left_feedback, prev_right_feedback
+    added_symbols = right_rule_after_derivation[:added_symbols_count]
+    consumed_symbols = right[: max(1, len(t) - added_symbols)]
+    left_1 = [left[0]] + added_symbols
+    right_1 = consumed_symbols
+
+    left_2 = left[1:]
+    right_2 = right_rule_after_derivation
+
+    is_pair_1_equivalent = choose_type(l_max, left_1, right_1, "", "")[0]
+    if not is_pair_1_equivalent:
+        return False, left_feedback, prev_right_feedback
+    return choose_type(l_max, left_2, right_2, left_feedback, left_feedback)
 
 
-    def _choose_type(self, answer: "Grammar", l_max: int, left: list[Symbol], right: list[Symbol], left_feedback: str, right_feedback: str) -> tuple[bool, str, str]:
-            if not left and not right:
-                return True, left_feedback, right_feedback
-            # equivalence pair generated has a left side of length greater than l_max + 2
-            left_leftmost = left[0]
-            left_leftmost_is_terminal = left_leftmost.is_terminal()
-            if not left_leftmost_is_terminal and len(left) > l_max + 2:
-                return self._replace_type_b(answer, left, right, left_feedback, right_feedback)
-            right_leftmost = right[0]
-            if left_leftmost.is_terminal and right_leftmost.is_terminal:
-                new_feedback_left = left_feedback + left_leftmost.symbol
-                new_feedback_right = right_feedback + right_leftmost.symbol
-                if left_leftmost.symbol == right_leftmost.symbol:
-                    return self._choose_type(answer, l_max, left[1:], right[1:], new_feedback_left, new_feedback_right)
-                return False, new_feedback_left, new_feedback_right
-            return self._replace_type_a(answer, l_max, left, right, left_feedback, right_feedback)
+def is_equivalent(g1: Grammar, g2: Grammar) -> tuple[bool, str]:
+    for g in [g1, g2]:
+        g.convert_to_s_grammar()
+        assert g.is_s_grammar
 
-
-    def is_equivalent_to(self, correct_grammar: "Grammar") -> tuple[bool, str]:
-        self.convert_to_s_grammar()
-        correct_grammar.convert_to_s_grammar()
-
-        left_feedback = ""
-        right_feedback = ""
-        l_max = max(self.calculate_l(), correct_grammar.calculate_l())   
-        
-        is_equivalent, updated_left_feedback, updated_right_feedback = self._replace_type_a(
-            correct_grammar,
-            l_max,
-            self.non_terminals[0].rules_list,
-            correct_grammar.non_terminals[0].rules_list,
-            left_feedback,
-            right_feedback
-        )
-
-        if is_equivalent:
-            return True, "Congratulations! Your answer is correct"
-        feedback = "Here is a string derivable from "
-        if len(updated_left_feedback) < len(updated_right_feedback):
-            feedback += "correct Grammar but not from your Grammar: " + updated_left_feedback
-        else:
-            feedback += "your Grammar but not from the correct Grammar: " + updated_right_feedback
-        return False, (feedback + "\n")
-
-
-    # TODO: Additional short-cuts by the use of Lemmas 10-13 directly?
+    l_max = calculate_l_max(g1, g2)
+    left_feedback = ""
+    right_feedback = ""
+    g1_is_equivalent_to_g2, left_feedback, right_feedback = replace_type_a(l_max, [g1.non_terminals[0]], [g2.non_terminals[0]], left_feedback, right_feedback)
+    if g1_is_equivalent_to_g2:
+        return True, "Congratulations! Your answer is correct"
+    feedback = "Here is a string derivable from "
+    if len(left_feedback) < len(right_feedback):
+        feedback += "correct Grammar but not from your Grammar: " + left_feedback
+    else:
+        feedback += "your Grammar but not from the correct Grammar: " + right_feedback
+    return False, (feedback + "\n")

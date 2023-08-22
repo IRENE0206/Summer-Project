@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from flask_cors import CORS
 
 from .db import db, User, UserRole
-from .util import unauthorized_handler, notfound_handler, badrequest_handler, conflict_handler, after_request, succeed
+from .util import badrequest_handler, conflict_handler, succeed
 import secrets
 
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -43,18 +43,14 @@ def register():
         db.session.commit()
     except IntegrityError:
         return conflict_handler(f"User {username} is already registered.")
-    except Exception as e:
-        return badrequest_handler("An unexpected error occurred.")
+
     session["user_id"] = new_user.user_id
     session["username"] = username
     session["user_role"] = role
     session["sessionIdentifier"] = generate_session_identifier()
     return succeed(
         "You have registered successfully", 
-        session_identifier=session["sessionIdentifier"], 
-        user_id=session["user_id"], 
-        user_name=session["username"], 
-        user_role=session["user_role"]
+        session_identifier=session["sessionIdentifier"]
     )
 
 
@@ -85,10 +81,7 @@ def login():
     session["sessionIdentifier"] = generate_session_identifier()
     return succeed(
         "You have logged in successfully", 
-        session_identifier=session["sessionIdentifier"], 
-        user_id=session["user_id"], 
-        user_name=session["username"], 
-        user_role=session["user_role"]
+        session_identifier=session["sessionIdentifier"]
     )
 
 def login_required(f):

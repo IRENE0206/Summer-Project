@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from .auth import login_required, is_admin
 from .db import db, Workbook, Exercise, Answer, Line
 from .util import (
-    unauthorized_handler, notfound_handler, badrequest_handler, conflict_handler, after_request
+    succeed, unauthorized_handler, badrequest_handler, conflict_handler
 )
 from flask_cors import CORS
 
@@ -46,7 +46,7 @@ def edit_workbook():
     workbook_id = data.get("workbook_id")
     
     workbooks = db.session.execute(
-            db.select(Workbooks)
+            db.select(Workbook)
         ).scalars().all()
     # TODO: implementation
 
@@ -65,17 +65,17 @@ def add_workbook():
     workbook_name = data.get("workbook_name")
     release_date = data.get("release_date")
     last_edit = datetime.now()
-    qandas = data.get("exercises", [])
+    q_and_a_s = data.get("exercises", [])
     try:
         workbook = Workbook(workbook_name=workbook_name, release_date=release_date, last_edit=last_edit)
         db.session.add(workbook)
         db.session.flush()
         # TODO: extract exercises data and add them to database
-        for qanda in qandas:
-            if not all(key in qanda for key in ['number', 'question', 'answer']):
+        for q_and_a in q_and_a_s:
+            if not all(key in q_and_a for key in ['number', 'question', 'answer']):
                 raise ValueError("Missing required fields in exercise data")
-            number_stripped = qanda['number'].strip()
-            question_stripped = qanda['question'].strip()
+            number_stripped = q_and_a['number'].strip()
+            question_stripped = q_and_a['question'].strip()
             if not number_stripped and not question_stripped:
                 continue
             exercise = Exercise(exercise_number=number_stripped, 
@@ -88,7 +88,7 @@ def add_workbook():
             answer = Answer(feedback="", exercise_id=exercise.exercise_id, user_id=session.get("user_id"))
             db.session.add(answer)
             db.session.flush()
-            for line in qanda['answer']:
+            for line in q_and_a['answer']:
                 if not all(key in line for key in ["line_index", "variable", "rules"]):
                     raise ValueError("Missing required fields in answer data")
                 index = line["line_index"]
