@@ -5,7 +5,7 @@ from flask import Flask
 from flask_session import Session
 from flask_cors import CORS
 
-from . import util, auth, run
+from . import util, auth, run, parser
 from .db import db
 
 
