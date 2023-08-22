@@ -51,6 +51,5 @@ def create_app(test_config=None):
     app.register_blueprint(run.bp)
     app.register_blueprint(parser.bp)
 
-    app.add_url_rule("/", endpoint="api")
 
     return app

@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from flask_cors import CORS
 
 from .db import db, User, UserRole
-from .util import badrequest_handler, conflict_handler, succeed
+from .util import notfound_handler, badrequest_handler, conflict_handler, unauthorized_handler, succeed
 import secrets
 
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -31,13 +31,13 @@ def register():
     if not password:
         return badrequest_handler("Password is required.")
     if password != repeat_password:
-        return badrequest_handler("Passwords do not match.")
+        return conflict_handler("Passwords do not match.")
 
     try:
-        role = UserRole.REGULAR.value
+        role = UserRole.REGULAR
         # TODO: change the code to external configuration or database-driven roles
         if username == "gn22297":
-            role = UserRole.ADMIN.value
+            role = UserRole.ADMIN
         new_user = User(username=username, password=generate_password_hash(password), role=role)
         db.session.add(new_user)
         db.session.commit()
@@ -68,10 +68,11 @@ def login():
     username = data.get("username")
     password = data.get("password")
 
-    user = db.one_or_404(
-        db.select(User).filter_by(username=username),
-        description=f"No user named '{username}' found."
-    )
+    user = db.session.execute(
+        db.select(User).filter_by(username=username)
+    ).scalar_one_or_none()
+    if user is None:
+        return notfound_handler(f"No user named '{username}' found.")
     if not check_password_hash(user.password, password):
         return badrequest_handler("Invalid credentials.")
         
@@ -88,8 +89,7 @@ def login_required(f):
     @wraps(f)
     def wrapped_view(*args, **kwargs):
         if "user_id" not in session:
-            return badrequest_handler("Login required")
-
+            return unauthorized_handler("Login required")
         return f(*args, **kwargs)
 
     return wrapped_view
@@ -103,7 +103,7 @@ def get_session_user():
     user_data = {
         "user_id": session.get("user_id"),
         "user_name": session.get("username"),
-        "user_role": session.get("user_role"),
+        "user_role": str(session.get("user_role")),
     }
     return jsonify(user_data)
 
@@ -115,5 +115,5 @@ def logout():
 def generate_session_identifier():
     return secrets.token_hex(16)
 
-def is_admin():
-    return session.get("user_role") == UserRole.ADMIN.value
+def is_admin() -> bool:
+    return session.get("user_role") == UserRole.ADMIN

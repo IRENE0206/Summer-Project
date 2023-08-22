@@ -16,12 +16,12 @@ export default function Login() {
         const form = e.currentTarget;
         const formData = new FormData(form);
         const data = {
-            username: formData.get("login_username"),
-            password: formData.get("login_password"),
+            username: formData.get("login_username") as string,
+            password: formData.get("login_password") as string,
         };
         // Verify all input fields are filled
         if (!data.username || !data.password) {
-            console.log("Form fileds are required");
+            console.log("Form fields are required");
             return;
         }
 
@@ -41,13 +41,12 @@ export default function Login() {
                     return res.json();
                 } else {
                     console.log("Login failed");
-
                     throw new Error("Login failed");
                 }
             })
             .then((data) => {
                 // store the session in client side
-                const sessionIdentifier = data.session_identifier;
+                const sessionIdentifier = data.sessionIdentifier;
                 const encryptedSessionIdentifier = CryptoJS.AES.encrypt(
                     sessionIdentifier,
                     "secretKey"
