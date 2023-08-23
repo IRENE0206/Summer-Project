@@ -3,11 +3,11 @@ from flask import (
 )
 from datetime import datetime
 
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from .auth import login_required, is_admin
 from .db import db, Workbook, Exercise, Answer, Line
 from .util import (
-    succeed, unauthorized_handler, badrequest_handler, conflict_handler
+    succeed, unauthorized_handler, badrequest_handler, conflict_handler, internal_server_error_handler
 )
 from flask_cors import CORS
 
@@ -17,21 +17,24 @@ CORS(bp)
 @login_required
 @bp.route("/workbooks", methods=["GET"])
 def get_workbooks():
-    if is_admin():
-        workbooks = db.session.execute(
-            db.select(Workbook)
-        ).scalars().all()
-    else:
-        workbooks = db.session.execute(
-            db.select(Workbook).filter(Workbook.release_date < datetime.now())
-        ).scalars().all()
+    try:
+        if is_admin():
+            workbooks = db.session.execute(
+                db.select(Workbook)
+            ).scalars().all()
+        else:
+            workbooks = db.session.execute(
+                db.select(Workbook).filter(Workbook.release_date < datetime.now())
+            ).scalars().all()
 
-    return jsonify([{
-        "workbook_id": workbook.workbook_id,
-        "workbook_name": workbook.workbook_name,
-        "release_date": workbook.release_date,
-        "last_edit": workbook.last_edit
-    } for workbook in workbooks])
+        return jsonify([{
+            "workbook_id": workbook.workbook_id,
+            "workbook_name": workbook.workbook_name,
+            "release_date": workbook.release_date,
+            "last_edit": workbook.last_edit
+        } for workbook in workbooks])
+    except SQLAlchemyError:
+        return internal_server_error_handler()
 
 @login_required
 @bp.route("/workbook/<int:workbook_id>/edit", methods=["POST"])

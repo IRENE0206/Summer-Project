@@ -10,7 +10,7 @@ export default function WorkbooksNavBar() {
     const [error, setError] = useState<Error | null>(null);
     useEffect(() => {
         fetch(api, {
-            method: "POST",
+            method: "GET",
             headers: {
                 "Content-Type": "application/json",
             },

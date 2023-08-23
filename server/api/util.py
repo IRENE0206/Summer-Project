@@ -10,6 +10,10 @@ CORS(bp)
 def unauthorized_handler(message: str):
     return response_generator(401, message)
 
+@bp.errorhandler(500)
+def internal_server_error_handler(message: str):
+    return response_generator(500, message)
+
 @bp.errorhandler(404)
 def notfound_handler(message: str):
     return response_generator(404, message)
