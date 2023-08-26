@@ -1,6 +1,5 @@
 from flask import jsonify, Blueprint
 from flask_cors import CORS
-import secrets
 
 
 bp = Blueprint("util", __name__)
@@ -41,10 +40,10 @@ def response_generator(status_code, message=None, **kwargs):
     response.status_code = status_code
     return response
 
-def succeed(message, session_identifier=None):
+def succeed(message, sessionIdentifier=None):
     response_data = {"message": message}
-    if session_identifier is not None:
-        response_data["session_identifier"] = session_identifier
+    if sessionIdentifier is not None:
+        response_data["sessionIdentifier"] = sessionIdentifier
 
     response = jsonify(response_data)
     response.status_code = 200

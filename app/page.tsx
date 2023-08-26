@@ -1,13 +1,10 @@
 "use client";
-import UserAuth from "@/utils/UserAuth";
-import { Container } from "react-bootstrap";
+import {Container} from "react-bootstrap";
+import {useRouter} from "next/navigation";
 
 export default function Home() {
-    // Authentification
-    // if succeed, redirect to homepage
-    // else redirect to login
-    UserAuth("/home");
-
+    const router = useRouter();
+    router.push("/home");
     return (
         <Container>
             <p>Loading...</p>

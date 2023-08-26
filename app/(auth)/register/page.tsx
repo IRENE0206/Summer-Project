@@ -37,15 +37,11 @@ export default function Register() {
             },
             body: JSON.stringify(data),
         })
-            .then((res) => {
-                console.log(res);
+            .then(async (res) => {
+                const data = await res.json();
                 if (!res.ok) {
-                    throw new Error("Login failed.");
+                    throw new Error(data.message || "Unknown Error");
                 }
-                return res.json();
-            })
-            .then((data) => {
-                // store the session in client side
                 const sessionIdentifier = data.session_identifier;
                 const encryptedSessionIdentifier = CryptoJS.AES.encrypt(
                     sessionIdentifier,
@@ -60,7 +56,7 @@ export default function Register() {
                 router.push("/home");
             })
             .catch((error) => {
-                console.log(error);
+                console.error("Register error:", error);
             });
     }
     return (

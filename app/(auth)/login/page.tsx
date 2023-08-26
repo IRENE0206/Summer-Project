@@ -35,22 +35,19 @@ export default function Login() {
             },
             body: JSON.stringify(data),
         })
-            .then((res) => {
-                if (res.ok) {
-                    console.log("Login ok successful");
-                    return res.json();
-                } else {
-                    console.log("Login failed");
-                    throw new Error("Login failed");
+            .then(async (res) => {
+                const data = await res.json()
+                if (!res.ok) {
+                    throw new Error(data.message || "Unknown Error");
+
                 }
-            })
-            .then((data) => {
-                // store the session in client side
                 const sessionIdentifier = data.sessionIdentifier;
+                console.log("sessionIdentifier " + sessionIdentifier)
                 const encryptedSessionIdentifier = CryptoJS.AES.encrypt(
                     sessionIdentifier,
                     "secretKey"
                 ).toString();
+                console.log("encryptedSessionIdentifier " + encryptedSessionIdentifier)
                 localStorage.setItem(
                     "sessionIdentifier",
                     encryptedSessionIdentifier
@@ -60,7 +57,7 @@ export default function Login() {
                 router.push("/home");
             })
             .catch((error) => {
-                console.log(error);
+                console.error("Login error:", error);
             });
     }
 

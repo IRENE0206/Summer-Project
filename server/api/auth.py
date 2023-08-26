@@ -12,7 +12,7 @@ import secrets
 from werkzeug.security import check_password_hash, generate_password_hash
 
 bp = Blueprint("auth", __name__, url_prefix="/api")
-CORS(bp)
+CORS(bp) # TODO: Add CORS configurations for safety.
 
 
 @bp.route("/register", methods=["POST"])
@@ -50,7 +50,7 @@ def register():
     session["sessionIdentifier"] = generate_session_identifier()
     return succeed(
         "You have registered successfully", 
-        session_identifier=session["sessionIdentifier"]
+        sessionIdentifier=session["sessionIdentifier"]
     )
 
 
@@ -82,7 +82,7 @@ def login():
     session["sessionIdentifier"] = generate_session_identifier()
     return succeed(
         "You have logged in successfully", 
-        session_identifier=session["sessionIdentifier"]
+        sessionIdentifier=session["sessionIdentifier"]
     )
 
 def login_required(f):
@@ -106,6 +106,17 @@ def get_session_user():
         "user_role": str(session.get("user_role")),
     }
     return jsonify(user_data)
+
+
+@bp.route("/verify_session_identifier", methods=["POST"])
+def verify_session_identifier():
+    token = request.headers.get("Authorization")
+    if not token:
+        return badrequest_handler("Missing or invalid Authorization header")
+    if token == session.get("sessionIdentifier"):
+        return succeed("Successfully authenticated")
+    return unauthorized_handler("token" + token + "Given token failed to pass authentication " + session.get("sessionIdentifier"))
+
 
 @bp.route("/logout", methods=["POST"])
 def logout():
