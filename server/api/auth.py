@@ -50,7 +50,7 @@ def register():
     session["sessionIdentifier"] = generate_session_identifier()
     return succeed(
         "You have registered successfully",
-        sessionIdentifier=session["sessionIdentifier"]
+        session_identifier=session["sessionIdentifier"]
     )
 
 
@@ -82,7 +82,7 @@ def login():
     session["sessionIdentifier"] = generate_session_identifier()
     return succeed(
         "You have logged in successfully",
-        sessionIdentifier=session["sessionIdentifier"]
+        session_identifier=session["sessionIdentifier"]
     )
 
 

@@ -1,5 +1,6 @@
 numpy
 Flask~=2.3.3
+Flask-SQLAlchemy~=3.0.5
 SQLAlchemy~=2.0.20
 werkzeug~=2.3.7
 pytest~=7.4.0

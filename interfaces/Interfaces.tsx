@@ -8,7 +8,12 @@ export interface WorkbookInterface {
 export interface UserInfoInterface {
     user_id: number;
     user_name: string;
-    user_role: string;
+    user_role: UserRole;
+}
+
+export enum UserRole {
+    Admin = "admin",
+    Regular = "regular",
 }
 
 export interface Line {
