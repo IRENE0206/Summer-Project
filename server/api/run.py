@@ -46,43 +46,69 @@ def get_workbook(user_role, workbook_id):
         role = UserRole(user_role)
     except ValueError:
         return badrequest_handler("Invalid user_role")
+
     if role.value != session.get("user_role"):
         return conflict_handler("'user_role' does not match with current session user's role")
-    workbook = db.session.execute(
-        db.select(Workbook).filter_by(workbook_id=workbook_id)
-    ).scalar_one_or_none()
+
+    is_user_admin = is_admin()
+    workbook = fetch_workbook_with_exercises(workbook_id, is_user_admin)
     if not workbook:
         return notfound_handler("Workbook not found")
-    response = {}
-    if is_admin():
-        response["workbook_name"] = workbook.workbook_name
-        response["release_date"] = workbook.workbook.release_date
-        response["last_edit"] = workbook.last_edit
-        exercises = db.session.execute(
-            db.select(Exercise).filter_by(workbook_id=workbook_id)
-        ).scalars().all()
-        response["exercises"] = []
-        for exercise in exercises:
-            answer = db.session.execute(
-                db.select(Answer).filter_by(exercise_id=exercise.exercise_id, user_id=session["user_id"])
-            ).scalar_one_or_none()
-            lines_data = []
-            if answer:
-                lines = db.session.execute(
-                    db.select(Line).filter_by(answer_id=answer.answer_id)
-                ).scalars().all()
-                if lines:
-                    lines_data = [{
-                        "line_index": line.line_index,
-                        "variable": line.variable,
-                        "rules": line.rules} for line in lines]
+    response = format_workbook_response(workbook, is_user_admin)
+    return jsonify(response)
 
-            response["exercises"].append({
-                "exercise_id": exercise.exercise_id,
-                "exercise_number": exercise.exercise_number,
-                "exercise_content": exercise.exercise_content,
-                "lines": lines_data,
-            })
+
+def fetch_workbook_with_exercises(workbook_id: int, is_user_admin: bool = False):
+    workbook_exercises = db.select(Workbook).options(db.joinedload(Workbook.exercises))
+    if is_user_admin:
+        query = workbook_exercises.filter_by(workbook_id=workbook_id)
+    else:
+        query = workbook_exercises.filter(
+            db.and_(Workbook.workbook_id == workbook_id, Workbook.release_date < datetime.now())
+        )
+    return db.session.execute(query).scalar_one_or_none()
+
+
+def fetch_user_answer(exercise_id: int):
+    return db.session.execute(
+        db.select(Answer).filter_by(exercise_id=exercise_id, user_id=session["user_id"])
+    ).scalar_one_or_none()
+
+
+def fetch_answer_lines(answer_id: int):
+    return db.session.execute(
+        db.select(Line).filter_by(answer_id=answer_id)
+    ).scalars().all()
+
+
+def format_workbook_response(workbook, exclude_feedback=False):
+    response = {
+        "workbook_name": workbook.workbook_name,
+        "release_date": workbook.workbook.release_date,
+        "last_edit": workbook.last_edit,
+        "exercises": [],
+    }
+    for exercise in workbook.exercises:
+        answer = fetch_user_answer(exercise.exercise_id)
+        lines_data = []
+        if answer:
+            lines_data = [{
+                "line_index": line.line_index,
+                "variable": line.variable,
+                "rules": line.rules
+            } for line in fetch_answer_lines(answer.answer_id)]
+
+        exercise_data = {
+            "exercise_id": exercise.exercise_id,
+            "exercise_number": exercise.exercise_number,
+            "exercise_content": exercise.exercise_content,
+            "lines": lines_data,
+        }
+        if (not exclude_feedback) and answer:
+            exercise_data["feedback"] = answer.feedback
+        response["exercises"].append(exercise_data)
+
+    return response
 
 
 @login_required
