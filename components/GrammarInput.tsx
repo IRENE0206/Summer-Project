@@ -1,7 +1,8 @@
 import Form from "react-bootstrap/Form";
 
 import InputGroup from "react-bootstrap/InputGroup";
-import { Line } from "@/interfaces/Interfaces";
+import {Line} from "@/interfaces/Interfaces";
+import Button from "react-bootstrap/Button";
 
 export default function GrammarInput({
     value,
@@ -37,7 +38,7 @@ export default function GrammarInput({
     const handleChangeLineVariable = (line_index: number, variable: string) => {
         onChange(
             value.map((line) =>
-                line.line_index === line_index ? { ...line, variable } : line
+                line.line_index === line_index ? {...line, variable} : line
             )
         );
     };
@@ -45,7 +46,7 @@ export default function GrammarInput({
     const handleChangeLineRules = (line_index: number, rules: string) => {
         onChange(
             value.map((line) =>
-                line.line_index === line_index ? { ...line, rules } : line
+                line.line_index === line_index ? {...line, rules} : line
             )
         );
     };
@@ -53,7 +54,9 @@ export default function GrammarInput({
     return (
         <>
             {value.map((line) => (
-                <InputGroup key={line.line_index}>
+                <InputGroup
+                    key={line.line_index}
+                >
                     <Form.Control
                         aria-label="Grammar variable input"
                         type="search"
@@ -77,19 +80,28 @@ export default function GrammarInput({
                             )
                         }
                     />
-                    <button
+                    <Button
+                        variant="outline-secondary"
                         type="button"
                         aria-label="Delete line"
                         disabled={value.length === 1}
                         onClick={() => handleDeleteLine(line.line_index)}
                     >
                         Delete
-                    </button>
+                    </Button>
+
+
                 </InputGroup>
+
             ))}
-            <button type="button" aria-label="Add line" onClick={handleAddLine}>
+            <Button
+                variant="outline-secondary"
+                type="button"
+                aria-label="Add line"
+                onClick={handleAddLine}
+            >
                 Add new line
-            </button>
+            </Button>
         </>
     );
 }

@@ -1,5 +1,8 @@
-import Link from "next/link";
+"use client";
 import NavLink from "react-bootstrap/NavLink";
+import {Container} from "react-bootstrap";
+import Button from "react-bootstrap/Button";
+
 export default function WorkbookMenu({
     params,
 }: {
@@ -8,13 +11,13 @@ export default function WorkbookMenu({
     };
 }) {
     return (
-        <div>
-            <NavLink href={`/${params.workbook_id}/edit`}>
-                <button>Edit</button>
+        <Container>
+            <NavLink href={`/workbook/${params.workbook_id}/edit`}>
+                <Button>Edit</Button>
             </NavLink>
-            <NavLink href={`/${params.workbook_id}/result`}>
-                <button>Result</button>
+            <NavLink href={`/workbook/${params.workbook_id}/result`}>
+                <Button>Result</Button>
             </NavLink>
-        </div>
+        </Container>
     );
 }

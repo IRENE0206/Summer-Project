@@ -1,13 +1,15 @@
 "use client";
 import Link from "next/link";
-import { FormEvent } from "react";
+import {FormEvent} from "react";
 import CryptoJS from "crypto-js";
-import { useRouter } from "next/navigation";
+import {useRouter} from "next/navigation";
 import Form from "react-bootstrap/Form";
 import InputGroup from "react-bootstrap/InputGroup";
+import Button from "react-bootstrap/Button";
 
 export default function Register() {
     const router = useRouter();
+
     function handleRegisterSubmit(e: FormEvent<HTMLFormElement>) {
         // Prevent the browser from reloading the page
         e.preventDefault();
@@ -59,6 +61,7 @@ export default function Register() {
                 console.error("Register error:", error);
             });
     }
+
     return (
         <Form method="post" onSubmit={handleRegisterSubmit}>
             <Form.Group>
@@ -99,7 +102,7 @@ export default function Register() {
                 />
             </Form.Group>
 
-            <button type="submit">Register</button>
+            <Button type="submit">Register</Button>
 
             <p>
                 Already have an account?

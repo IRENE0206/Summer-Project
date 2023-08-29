@@ -1,5 +1,7 @@
+import {Container} from "react-bootstrap";
+
 export default function HomePage() {
     return (
-        <p>Welcome message</p>
+        <Container>Welcome message</Container>
     );
 }

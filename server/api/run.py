@@ -1,18 +1,20 @@
+from datetime import datetime, date
+
 from flask import (
     request, Blueprint, session, jsonify
 )
-from datetime import datetime
-
+from flask_cors import CORS
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+
 from .auth import login_required, is_admin
 from .db import db, Workbook, Exercise, Answer, Line
 from .util import (
     succeed, unauthorized_handler, badrequest_handler, conflict_handler, internal_server_error_handler
 )
-from flask_cors import CORS
 
 bp = Blueprint("app", __name__, url_prefix="/api")
 CORS(bp)
+
 
 @login_required
 @bp.route("/workbooks", methods=["GET"])
@@ -36,21 +38,22 @@ def get_workbooks():
     except SQLAlchemyError:
         return internal_server_error_handler()
 
+
 @login_required
 @bp.route("/workbook/<int:workbook_id>/edit", methods=["POST"])
 def edit_workbook():
     if not is_admin():
         return unauthorized_handler("Only admin user can edit workbooks")
-    
+
     data = request.get_json()
     if not data:
         return badrequest_handler("Invalid data format.")
-    
+
     workbook_id = data.get("workbook_id")
-    
+
     workbooks = db.session.execute(
-            db.select(Workbook)
-        ).scalars().all()
+        db.select(Workbook)
+    ).scalars().all()
     # TODO: implementation
 
 
@@ -62,11 +65,18 @@ def add_workbook():
     data = request.get_json()
     if not data:
         return badrequest_handler("Invalid data format.")
-    
+
     if not all(key in data for key in ["workbook_name", "release_date", "exercises"]):
         return badrequest_handler("Missing required fields for the workbook information")
     workbook_name = data.get("workbook_name")
-    release_date = data.get("release_date")
+    release_date_str = data.get("release_date")
+    try:
+        # The format is assumed to be 'YYYY-MM-DD' coming from HTML date input
+        year, month, day = map(int, release_date_str.split('-'))
+        release_date = date(year, month, day)  # Convert string to date object
+    except Exception as e:
+        return badrequest_handler(f"Invalid date format: {e}")
+
     last_edit = datetime.now()
     q_and_a_s = data.get("exercises", [])
     try:
@@ -81,12 +91,12 @@ def add_workbook():
             question_stripped = q_and_a['question'].strip()
             if not number_stripped and not question_stripped:
                 continue
-            exercise = Exercise(exercise_number=number_stripped, 
-                                 exercise_content=question_stripped,
-                                 workbook_id=workbook.workbook_id)
+            exercise = Exercise(exercise_number=number_stripped,
+                                exercise_content=question_stripped,
+                                workbook_id=workbook.workbook_id)
             db.session.add(exercise)
             db.session.flush()
-            
+
             # Storing answers for each exercise to the database
             answer = Answer(feedback="", exercise_id=exercise.exercise_id, user_id=session.get("user_id"))
             db.session.add(answer)
@@ -97,8 +107,9 @@ def add_workbook():
                 index = line["line_index"]
                 variable_stripped = line["variable"].strip()
                 rules_stripped = line["rules"].strip()
-                if index or variable_stripped or rules_stripped:  
-                    line_entry = Line(line_index=index, answer_id=answer.answer_id, variable=variable_stripped, rules=rules_stripped)
+                if index or variable_stripped or rules_stripped:
+                    line_entry = Line(line_index=index, answer_id=answer.answer_id, variable=variable_stripped,
+                                      rules=rules_stripped)
                     db.session.add(line_entry)
         db.session.commit()
         return succeed("Created new workbook successfully")
@@ -109,5 +120,3 @@ def add_workbook():
     except Exception as e:
         db.session.rollback()
         return badrequest_handler(str(e))
-
-

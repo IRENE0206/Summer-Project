@@ -1,8 +1,8 @@
 import "bootstrap/dist/css/bootstrap.css";
-import { WorkbookInterface } from "@/interfaces/Interfaces";
-import { useEffect, useState } from "react";
-import NavLink from "react-bootstrap/NavLink";
-import { Nav } from "react-bootstrap";
+import {WorkbookInterface} from "@/interfaces/Interfaces";
+import {useEffect, useState} from "react";
+import {Nav} from "react-bootstrap";
+import Button from "react-bootstrap/Button";
 
 export default function WorkbooksNavBar() {
     const api = "/api/workbooks";
@@ -50,18 +50,26 @@ export default function WorkbooksNavBar() {
         >
             {workbooks ? (
                 workbooks.map((workbook) => (
-                    <NavLink
-                        key={workbook["workbook_id"]}
-                        href={`/${workbook["workbook_id"]}/menu`}
-                    >
-                        <button>{workbook["workbook_name"]}</button>
-                    </NavLink>
+                    <Nav.Item key={workbook["workbook_id"]}>
+                        <Nav.Link
+                            href={`/workbook/${workbook["workbook_id"]}`}
+                        >
+                            <Button
+                                variant="outline-primary"
+                                type="button"
+                            >
+                                {workbook["workbook_name"]}
+                            </Button>
+                        </Nav.Link>
+                    </Nav.Item>
+
+
                 ))
             ) : (
                 <p>Loading workbooks...</p>
             )}
 
-            <NavLink href="">WORKBOOK NAME</NavLink>
+            <Nav.Link href="">WORKBOOK NAME</Nav.Link>
 
             <p>current workbook count: {workbooks.length}</p>
         </Nav>

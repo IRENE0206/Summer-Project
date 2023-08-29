@@ -1,39 +1,53 @@
-import { UserInfoInterface } from "@/interfaces/Interfaces";
-import Dropdown from "react-bootstrap/Dropdown";
+"use client";
+import {UserInfoInterface} from "@/interfaces/Interfaces";
+import {Container, Dropdown, Toast} from "react-bootstrap";
+import {useState} from "react";
 
-export default function UserMenu({ info }: { info: UserInfoInterface | null }) {
-    function onClickHandler() {
+export default function UserMenu({info}: { info: UserInfoInterface | null }) {
+    const [showToast, setShowToast] = useState(false);
+    const [toastMessage, setToastMessage] = useState("");
+
+    async function onClickHandler() {
         localStorage.removeItem("sessionIdentifier");
         const api = "/api/logout";
-        fetch(api, {
+        const res = await fetch(api, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
-        })
-            .then((res) => {
-                if (res.ok) {
-                    console.log("Log out successful");
-                } else {
-                    throw new Error("Logout failed");
-                }
-            })
-            .catch((error) => console.log("Log out failed"));
+        });
+        if (res.ok) {
+            console.log("Log out successful");
+        } else {
+            const data = await res.json();
+            console.error("Log out failed", data);
+            setShowToast(true);
+            setToastMessage(data.message);
+        }
     }
+
     return (
-        <Dropdown drop={"up-centered"} align={"start"}>
-            <Dropdown.Toggle variant="success" id="user-menu-dropdown">
-                {info == null ? (
-                    <p>Loading usermenu</p>
-                ) : (
-                    <span>{info.user_name}</span>
-                )}
-            </Dropdown.Toggle>
-            <Dropdown.Menu>
-                <Dropdown.Item href="/logout" onClick={onClickHandler}>
-                    Sign out
-                </Dropdown.Item>
-            </Dropdown.Menu>
-        </Dropdown>
+        <Container>
+            <Dropdown drop={"up-centered"} align={"start"}>
+                <Dropdown.Toggle variant="success" id="user-menu-dropdown">
+                    {info == null ? (
+                        <p>Loading user menu</p>
+                    ) : (
+                        <span>{info.user_name}</span>
+                    )}
+                </Dropdown.Toggle>
+                <Dropdown.Menu>
+                    <Dropdown.Item href="/logout" onClick={onClickHandler}>
+                        Sign out
+                    </Dropdown.Item>
+                </Dropdown.Menu>
+            </Dropdown>
+            <Toast onClose={() => setShowToast(false)} show={showToast} autohide>
+                <Toast.Header>
+                    <strong className="mr-auto">Error</strong>
+                </Toast.Header>
+                <Toast.Body>{toastMessage}</Toast.Body>
+            </Toast>
+        </Container>
     );
 }

@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent } from "react";
+import {FormEvent} from "react";
 import CryptoJS from "crypto-js";
-import { useRouter } from "next/navigation";
+import {useRouter} from "next/navigation";
 import Form from "react-bootstrap/Form";
 import InputGroup from "react-bootstrap/InputGroup";
+import Button from "react-bootstrap/Button";
 
 export default function Login() {
     const router = useRouter();
+
     async function handleLoginSubmit(e: FormEvent<HTMLFormElement>) {
         // Prevent the browser from reloading the page
         e.preventDefault();
@@ -36,18 +38,18 @@ export default function Login() {
             body: JSON.stringify(data),
         })
             .then(async (res) => {
-                const data = await res.json()
+                const data = await res.json();
                 if (!res.ok) {
                     throw new Error(data.message || "Unknown Error");
 
                 }
                 const sessionIdentifier = data.sessionIdentifier;
-                console.log("sessionIdentifier " + sessionIdentifier)
+                console.log("sessionIdentifier " + sessionIdentifier);
                 const encryptedSessionIdentifier = CryptoJS.AES.encrypt(
                     sessionIdentifier,
                     "secretKey"
                 ).toString();
-                console.log("encryptedSessionIdentifier " + encryptedSessionIdentifier)
+                console.log("encryptedSessionIdentifier " + encryptedSessionIdentifier);
                 localStorage.setItem(
                     "sessionIdentifier",
                     encryptedSessionIdentifier
@@ -90,7 +92,7 @@ export default function Login() {
                 />
             </Form.Group>
 
-            <button type="submit">Sign In</button>
+            <Button type="submit">Sign In</Button>
 
             <p>
                 Do not have an account?
