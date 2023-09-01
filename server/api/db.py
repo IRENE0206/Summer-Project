@@ -12,6 +12,13 @@ class UserRole(Enum):
     REGULAR = "regular"
 
 
+USER = "User"
+WORKBOOK = "Workbook"
+EXERCISE = "Exercise"
+ANSWER = "Answer"
+LINE = "Line"
+
+
 class User(db.Model):
     user_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String, unique=True, nullable=False)
@@ -19,7 +26,7 @@ class User(db.Model):
     role = db.Column(db.Enum(UserRole), nullable=False)
 
     # Relationships
-    answers = db.relationship("Answer", back_populates="user", lazy="dynamic")
+    answers = db.relationship(ANSWER, back_populates="user", lazy="dynamic")
 
 
 class Workbook(db.Model):
@@ -29,7 +36,7 @@ class Workbook(db.Model):
     workbook_last_edit = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
-    exercises = db.relationship("Exercise", back_populates="workbook", lazy="dynamic")
+    exercises = db.relationship(EXERCISE, back_populates="workbook", lazy="dynamic")
 
 
 class Exercise(db.Model):
@@ -40,8 +47,8 @@ class Exercise(db.Model):
     exercise_last_edit = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    workbook = db.relationship("Workbook", back_populates="exercises")
-    answers = db.relationship("Answer", back_populates="exercise", lazy="dynamic")
+    workbook = db.relationship(WORKBOOK, back_populates="exercises")
+    answers = db.relationship(ANSWER, back_populates="exercise", lazy="dynamic")
 
 
 class Answer(db.Model):
@@ -53,9 +60,9 @@ class Answer(db.Model):
     answer_last_edit = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    user = db.relationship("User", back_populates="answers")
-    exercise = db.relationship("Exercise", back_populates="answers")
-    lines = db.relationship("Line", back_populates="answer", lazy="dynamic")
+    user = db.relationship(USER, back_populates="answers")
+    exercise = db.relationship(EXERCISE, back_populates="answers")
+    lines = db.relationship(LINE, back_populates="answer", lazy="dynamic")
 
 
 class Line(db.Model):
@@ -68,4 +75,4 @@ class Line(db.Model):
     rules = db.Column(db.String, nullable=False)
 
     # Relationships
-    answer = db.relationship("Answer", back_populates="lines")
+    answer = db.relationship(ANSWER, back_populates="lines")

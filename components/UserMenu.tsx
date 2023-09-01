@@ -1,9 +1,19 @@
 "use client";
-import {UserInfoInterface} from "@/interfaces/Interfaces";
-import {Container, Dropdown, Toast} from "react-bootstrap";
-import {useState} from "react";
+import {Alert, Container, Dropdown, Toast} from "react-bootstrap";
+import React, {useContext, useState} from "react";
+import UserInfoContext from "@/utils/UserInfoContext";
 
-export default function UserMenu({info}: { info: UserInfoInterface | null }) {
+export default function UserMenu() {
+    const userInfo = useContext(UserInfoContext);
+    if (!userInfo) {
+        return (
+            <Container>
+                <Alert variant="danger">
+                    Failed to fetch user information. Please try again.
+                </Alert>
+            </Container>
+        );
+    }
     const [showToast, setShowToast] = useState(false);
     const [toastMessage, setToastMessage] = useState("");
 
@@ -30,14 +40,10 @@ export default function UserMenu({info}: { info: UserInfoInterface | null }) {
         <Container>
             <Dropdown drop={"up-centered"} align={"start"}>
                 <Dropdown.Toggle variant="success" id="user-menu-dropdown">
-                    {info == null ? (
-                        <p>Loading user menu</p>
-                    ) : (
-                        <span>{info.user_name}</span>
-                    )}
+                    <span>{userInfo.user_name}</span>
                 </Dropdown.Toggle>
                 <Dropdown.Menu>
-                    <Dropdown.Item href="/logout" onClick={onClickHandler}>
+                    <Dropdown.Item href="/" onClick={onClickHandler}>
                         Sign out
                     </Dropdown.Item>
                 </Dropdown.Menu>

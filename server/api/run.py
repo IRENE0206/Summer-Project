@@ -135,7 +135,7 @@ def edit_workbook(user_role, workbook_id):
 @bp.route("/workbook/new", methods=["POST"])
 def add_workbook():
     if not is_admin():
-        return unauthorized_handler("Only admin user can add new workbook")
+        return unauthorized_handler("Only admin user can add new workbooks")
     data = request.get_json()
     if not data:
         return badrequest_handler("Invalid data format.")
@@ -162,7 +162,7 @@ def add_workbook():
                     db.session.add(line)
                     db.session.flush()
         db.session.commit()
-        return succeed("Created new workbook successfully")
+        return succeed("Created new workbooks successfully")
     except ValueError as ve:
         db.session.rollback()
         return badrequest_handler(f"Validation Error: {ve}")
@@ -201,7 +201,7 @@ def create_line(line_data, answer_id: int) -> Line | None:
 
 def validate_workbook_data(data) -> None:
     required_keys = ["workbook_name", "release_date", "exercises"]
-    entity_name = "workbook"
+    entity_name = "workbooks"
     validate_data(data, required_keys, entity_name)
 
 

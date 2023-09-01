@@ -19,7 +19,7 @@ export default function useAuth() {
             // Redirect to login page if the session identifier is not found
             setPassAuth(false);
             console.log("Redirect to login page");
-            router.push("/login");
+            router.push("/");
             return;
         }
         const decryptedSessionIdentifier = CryptoJS.AES.decrypt(
@@ -48,7 +48,7 @@ export default function useAuth() {
             .catch((error) => {
                 console.error("Error: ", error);
                 setPassAuth(false);
-                router.push("/login");
+                router.push("/");
             });
     }, []);
     return passAuth;

@@ -1,8 +1,9 @@
 "use client";
 import {Button, Card, Container, Form, InputGroup, Tab, Tabs} from "react-bootstrap";
 import {useRouter} from "next/navigation";
-import {FormEvent} from "react";
+import {FormEvent, useState} from "react";
 import CryptoJS from "crypto-js";
+import {UserInfoInterface} from "@/interfaces/Interfaces";
 
 interface FormDataModel {
     username: string;
@@ -11,9 +12,11 @@ interface FormDataModel {
 }
 
 export default function Index() {
+    const SESSION_IDENTIFIER = "session_identifier";
     const router = useRouter();
+    const [userInfo, setUserInfo] = useState<UserInfoInterface | null>(null);
 
-    async function handleFormSubmit(e: FormEvent<HTMLFormElement>, api: string, isRegistration: boolean = false) {
+    function handleFormSubmit(e: FormEvent<HTMLFormElement>, api: string, isRegistration: boolean = false) {
         // Prevent the browser from reloading the page
         e.preventDefault();
         const form = e.currentTarget;
@@ -54,7 +57,7 @@ export default function Index() {
                     throw new Error(responseData.message || "Unknown Error");
 
                 }
-                const sessionIdentifier = responseData["session_identifier"];
+                const sessionIdentifier = responseData[SESSION_IDENTIFIER];
                 if (!sessionIdentifier) {
                     console.error("Session identifier missing from server response.");
                     return;
@@ -66,35 +69,58 @@ export default function Index() {
                 ).toString();
                 console.log("encryptedSessionIdentifier " + encryptedSessionIdentifier);
                 localStorage.setItem(
-                    "sessionIdentifier",
+                    SESSION_IDENTIFIER,
                     encryptedSessionIdentifier
                 );
-                console.log("Login successful. Now direct to '/home");
-                // Redirect to homepage if login is successful
-                router.push("/home");
             })
             .catch((error) => {
                 console.error(error);
             });
 
+        const user_info_api = "/api/user";
+        fetch(user_info_api, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        })
+            .then(async (res) => {
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.message || "Failed to fetch user info");
+                }
+                return res.json();
+            })
+            .then((data: UserInfoInterface) => {
+                setUserInfo(data);
+            })
+            .catch((err) => {
+                console.error(err);
+            });
+        if (userInfo) {
+            router.push("/home");
+        }
     }
 
-    async function handleLoginSubmit(e: FormEvent<HTMLFormElement>) {
+    function handleLoginSubmit(e: FormEvent<HTMLFormElement>) {
         const api = "/api/login";
         // pass data as a fetch body
-        await handleFormSubmit(e, api);
+        handleFormSubmit(e, api);
+
     }
 
-    async function handleRegisterSubmit(e: FormEvent<HTMLFormElement>) {
+    function handleRegisterSubmit(e: FormEvent<HTMLFormElement>) {
         const api = "/api/register";
-        await handleFormSubmit(e, api, true);
+        handleFormSubmit(e, api, true);
     }
 
     return (
         <Container>
-            <Card>
+            <Card
+                border={"primary"}
+            >
                 <Card.Header>
-                    WEBSITE NAME {/* TODO: */}
+                    <h1>WEBSITE NAME {/* TODO: */}</h1>
                 </Card.Header>
                 <Card.Body>
                     <Tabs

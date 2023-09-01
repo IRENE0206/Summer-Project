@@ -65,7 +65,8 @@ export default function AddWorkbook() {
             release_date: releaseDate,
             exercises: qandaList,
         };
-        const api = "/api/workbook/new";
+        const api = "/api/workbooks/new";
+
         fetch(api, {
             method: "POST",
             headers: {
@@ -90,7 +91,7 @@ export default function AddWorkbook() {
                 console.log("Workbook added successfully");
                 // store the session in client side
                 const workbook_id = data.workbook_id;
-                console.log("Now direct to '/workbook/[workbook_id]");
+                console.log("Now direct to '/workbooks/[workbook_id]");
                 router.push(`/workbook/${workbook_id}`);
 
 
@@ -120,9 +121,16 @@ export default function AddWorkbook() {
 
                             <Form.Label column md={2}>Release Date:</Form.Label>
 
-                            <Col md={10}>
+                            <Col md={6}>
                                 <Form.Control
-                                    type="date"
+                                    type={"date"}
+                                    value={releaseDate}
+                                    onChange={(e) => setReleaseDate(e.target.value)}
+                                />
+                            </Col>
+                            <Col md={4}>
+                                <Form.Control
+                                    type={"time"}
                                     value={releaseDate}
                                     onChange={(e) => setReleaseDate(e.target.value)}
                                 />

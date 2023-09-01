@@ -1,8 +1,10 @@
+"use client";
 import useAuth from "@/utils/useAuth";
 import React from "react";
 import {Container} from "react-bootstrap";
 import useUserInfo from "@/utils/useUserInfo";
 import SideBar from "@/components/SideBar";
+import UserInfoContext from "@/utils/UserInfoContext";
 
 export default function MainLayout({children}: {
     children: React.ReactNode;
@@ -21,10 +23,12 @@ export default function MainLayout({children}: {
     return (
         <Container>
             <div className="container-xxl bd-gutter bd-layout">
-                <SideBar userInfo={userInfo}/>
-                <main className="bd-main">
-                    {children}
-                </main>
+                <UserInfoContext.Provider value={userInfo}>
+                    <SideBar/>
+                    <main className="bd-main">
+                        {children}
+                    </main>
+                </UserInfoContext.Provider>
             </div>
         </Container>
     );
