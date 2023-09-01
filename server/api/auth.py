@@ -47,10 +47,10 @@ def register():
     session["user_id"] = new_user.user_id
     session["username"] = username
     session["user_role"] = role
-    session["sessionIdentifier"] = generate_session_identifier()
+    session["session_identifier"] = generate_session_identifier()
     return succeed(
         "You have registered successfully",
-        session_identifier=session["sessionIdentifier"]
+        session_identifier=session["session_identifier"]
     )
 
 
@@ -79,10 +79,10 @@ def login():
     session["user_id"] = user.user_id
     session["user_role"] = user.role
     session["username"] = user.username
-    session["sessionIdentifier"] = generate_session_identifier()
+    session["session_identifier"] = generate_session_identifier()
     return succeed(
         "You have logged in successfully",
-        session_identifier=session["sessionIdentifier"]
+        session_identifier=session["session_identifier"]
     )
 
 
@@ -127,10 +127,10 @@ def verify_session_identifier():
     token = request.headers.get("Authorization")
     if not token:
         return badrequest_handler("Missing or invalid Authorization header")
-    if token == session.get("sessionIdentifier"):
+    if token == session.get("session_identifier"):
         return succeed("Successfully authenticated")
     return unauthorized_handler(
-        "token" + token + "Given token failed to pass authentication " + session.get("sessionIdentifier"))
+        "token" + token + "Given token failed to pass authentication " + session.get("session_identifier"))
 
 
 @bp.route("/logout", methods=["POST"])

@@ -50,7 +50,7 @@ def response_generator(status_code, message=None, **kwargs):
 def succeed(message, session_identifier=None):
     response_data = {"message": message}
     if session_identifier is not None:
-        response_data["sessionIdentifier"] = session_identifier
+        response_data["session_identifier"] = session_identifier
 
     response = jsonify(response_data)
     response.status_code = 200
