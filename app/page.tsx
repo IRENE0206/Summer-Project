@@ -1,22 +1,30 @@
 "use client";
-import {Button, Card, Container, Form, InputGroup, Tab, Tabs} from "react-bootstrap";
+import {Button, Card, Container, Form, InputGroup, Tab, Tabs, Toast, ToastContainer} from "react-bootstrap";
 import {useRouter} from "next/navigation";
 import {FormEvent, useState} from "react";
 import CryptoJS from "crypto-js";
-import {UserInfoInterface} from "@/interfaces/Interfaces";
+import {SECRET_KEY, SESSION_IDENTIFIER} from "@/utils/constants";
 
 interface FormDataModel {
-    username: string;
+    user_name: string;
     password: string;
     repeat_password?: string;
 }
 
-export default function Index() {
-    const SESSION_IDENTIFIER = "session_identifier";
-    const router = useRouter();
-    const [userInfo, setUserInfo] = useState<UserInfoInterface | null>(null);
+const LOGIN_USERNAME = "login_username";
+const LOGIN_PASSWORD = "login_password";
+const REGISTER_USERNAME = "register_username";
+const FIRST_PASSWORD = "first_password";
+const REPEAT_PASSWORD = "repeat_password";
 
-    function handleFormSubmit(e: FormEvent<HTMLFormElement>, api: string, isRegistration: boolean = false) {
+const LOGIN_API = "/api/login";
+const REGISTER_API = "/api/register";
+
+export default function Index() {
+    const router = useRouter();
+    const [showToast, setShowToast] = useState<boolean>(false);
+    const [toastMessage, setToastMessage] = useState<string>("");
+    const handleFormSubmit = async (e: FormEvent<HTMLFormElement>, api: string, isRegistration: boolean = false) => {
         // Prevent the browser from reloading the page
         e.preventDefault();
         const form = e.currentTarget;
@@ -25,193 +33,205 @@ export default function Index() {
 
         if (isRegistration) {
             data = {
-                username: formData.get("register_username") as string,
+                user_name: formData.get("register_username") as string,
                 password: formData.get("first_password") as string,
                 repeat_password: formData.get("repeat_password") as string,
             };
-            if (!data.username || !data.password || !data.repeat_password) {
-                console.log("All form fields are required");
+            if (!data.user_name || !data.password || !data.repeat_password) {
+                setToastMessage("All form fields are required");
+                console.log(toastMessage);
                 return;
             }
         } else {
             data = {
-                username: formData.get("login_username") as string,
+                user_name: formData.get("login_username") as string,
                 password: formData.get("login_password") as string,
             };
-            if (!data.username || !data.password) {
-                console.log("All form fields are required");
+            if (!data.user_name || !data.password) {
+                setToastMessage("All form fields are required");
+                console.log(toastMessage);
                 return;
             }
         }
 
-        fetch(api, {
+
+        const res = await fetch(api, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify(data),
-        })
-            .then(async (res) => {
-                const responseData = await res.json();
-                if (!res.ok) {
-                    throw new Error(responseData.message || "Unknown Error");
+        });
 
-                }
-                const sessionIdentifier = responseData[SESSION_IDENTIFIER];
-                if (!sessionIdentifier) {
-                    console.error("Session identifier missing from server response.");
-                    return;
-                }
-                console.log("sessionIdentifier " + sessionIdentifier);
-                const encryptedSessionIdentifier = CryptoJS.AES.encrypt(
-                    sessionIdentifier,
-                    "secretKey"
-                ).toString();
-                console.log("encryptedSessionIdentifier " + encryptedSessionIdentifier);
-                localStorage.setItem(
-                    SESSION_IDENTIFIER,
-                    encryptedSessionIdentifier
-                );
-            })
-            .catch((error) => {
-                console.error(error);
-            });
-
-        const user_info_api = "/api/user";
-        fetch(user_info_api, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-        })
-            .then(async (res) => {
-                if (!res.ok) {
-                    const errorData = await res.json();
-                    throw new Error(errorData.message || "Failed to fetch user info");
-                }
-                return res.json();
-            })
-            .then((data: UserInfoInterface) => {
-                setUserInfo(data);
-            })
-            .catch((err) => {
-                console.error(err);
-            });
-        if (userInfo) {
-            router.push("/home");
+        const responseData = await res.json();
+        if (!res.ok) {
+            setToastMessage(responseData.message);
+            setShowToast(true);
+            console.error(toastMessage);
+            return;
         }
-    }
+        const sessionIdentifier = responseData[SESSION_IDENTIFIER];
+        if (!sessionIdentifier) {
+            setToastMessage("Session identifier missing from server response.");
+            console.error(toastMessage);
+            return;
+        }
+        console.log(SESSION_IDENTIFIER + " " + sessionIdentifier);
+        const encryptedSessionIdentifier = CryptoJS.AES.encrypt(
+            sessionIdentifier,
+            SECRET_KEY
+        ).toString();
+        console.log("encryptedSessionIdentifier " + encryptedSessionIdentifier);
+        localStorage.setItem(
+            SESSION_IDENTIFIER,
+            encryptedSessionIdentifier
+        );
+        router.push("/home");
+    };
 
-    function handleLoginSubmit(e: FormEvent<HTMLFormElement>) {
-        const api = "/api/login";
-        // pass data as a fetch body
-        handleFormSubmit(e, api);
+    const handleLoginSubmit = async (e: FormEvent<HTMLFormElement>) => {
+        await handleFormSubmit(e, LOGIN_API);
 
-    }
+    };
 
-    function handleRegisterSubmit(e: FormEvent<HTMLFormElement>) {
-        const api = "/api/register";
-        handleFormSubmit(e, api, true);
-    }
+    const handleRegisterSubmit = async (e: FormEvent<HTMLFormElement>) => {
+        await handleFormSubmit(e, REGISTER_API, true);
+    };
 
     return (
-        <Container>
-            <Card
-                border={"primary"}
+        <Container
+            className={"d-flex justify-content-center align-items-center vh-100 col-lg-5 col-md-3 py-3"}>
+            <ToastContainer
+                position={"middle-center"}
+                className={"d-flex"}
             >
-                <Card.Header>
-                    <h1>WEBSITE NAME {/* TODO: */}</h1>
-                </Card.Header>
-                <Card.Body>
-                    <Tabs
-                        defaultActiveKey={"login"}
+                <Toast
+                    onClose={() => setShowToast(false)}
+                    show={showToast}
+                    bg={"danger"}
+                    autohide
+                >
+                    <Toast.Header
+                        closeVariant={"white"}
                     >
-                        <Tab
-                            eventKey={"login"}
-                            title={"Login"}
+                        <strong className="me-auto">Error</strong>
+                    </Toast.Header>
+                    <Toast.Body>{toastMessage}</Toast.Body>
+                </Toast>
+            </ToastContainer>
+            <Container className={"d-flex justify-content-center align-items-center"}>
+                <Card
+                    border={"light"}
+                    className={"d-flex w-100 shadow-lg bg-primary-subtle rounded-5"}
+                >
+                    <Card.Header className={"bg-dark shadow text-white rounded-top-5"}>
+                        <Card.Title as={"h1"} className={"m-3 text-center"}>WEBSITE
+                            NAME {/* TODO: */}</Card.Title>
+                    </Card.Header>
+                    <Card.Body className={"m-3"}>
+                        <Tabs
+                            defaultActiveKey={"login"}
+                            variant={"tabs"}
+                            className={"mb-1"}
+                            justify
                         >
-                            <Form method="post" onSubmit={handleLoginSubmit}>
-                                <Form.Group>
-                                    <Form.Label>Email address</Form.Label>
-                                    <InputGroup>
+                            <Tab
+                                eventKey={"login"}
+                                title={"Login"}
+                                className={"p-3 shadow-lg bg-light-subtle rounded-bottom-5"}
+                            >
+                                <Form method="post" onSubmit={handleLoginSubmit}>
+                                    <Form.Group className={"m-3"}>
+                                        <Form.Label>Email address:</Form.Label>
+                                        <InputGroup>
+                                            <Form.Control
+                                                id={LOGIN_USERNAME}
+                                                name={LOGIN_USERNAME}
+                                                type="search"
+                                                autoComplete="username"
+                                                placeholder="You UoB username"
+                                                required
+                                            />
+                                            <InputGroup.Text>@bristol.ac.uk</InputGroup.Text>
+                                        </InputGroup>
+                                    </Form.Group>
+
+                                    <Form.Group className={"m-3"}>
+                                        <Form.Label>Password:</Form.Label>
+
                                         <Form.Control
-                                            id="login_username"
-                                            name="login_username"
-                                            type="search"
-                                            autoComplete="username"
-                                            placeholder="You UoB username"
+                                            id={LOGIN_PASSWORD}
+                                            name={LOGIN_PASSWORD}
+                                            type="password"
+                                            autoComplete="current-password"
                                             required
                                         />
-                                        <InputGroup.Text>@bristol.ac.uk</InputGroup.Text>
-                                    </InputGroup>
-                                </Form.Group>
+                                    </Form.Group>
 
-                                <Form.Group>
-                                    <Form.Label>Password</Form.Label>
 
-                                    <Form.Control
-                                        id="login_password"
-                                        name="login_password"
-                                        type="password"
-                                        autoComplete="current-password"
-                                        required
-                                    />
-                                </Form.Group>
+                                    <Button variant={"success"} size={"lg"} type={"submit"}
+                                        className={"m-3 rounded"}>Sign
+                                        In</Button>
+                                </Form>
+                            </Tab>
 
-                                <Button type="submit">Sign In</Button>
-                            </Form>
-                        </Tab>
 
-                        <Tab
-                            eventKey={"register"}
-                            title={"Register"}
-                        >
-                            <Form method="post" onSubmit={handleRegisterSubmit}>
-                                <Form.Group>
-                                    <Form.Label>Email address</Form.Label>
-                                    <InputGroup>
+                            <Tab
+                                eventKey={"register"}
+                                title={"Register"}
+                                className={"p-3 shadow-lg bg-light-subtle rounded-bottom-5"}
+                            >
+                                <Form method="post" onSubmit={handleRegisterSubmit} className={"mb-3"}>
+                                    <Form.Group className={"m-3"}>
+                                        <Form.Label>Email address:</Form.Label>
+                                        <InputGroup>
+                                            <Form.Control
+                                                id={REGISTER_USERNAME}
+                                                name={REGISTER_USERNAME}
+                                                type={"search"}
+                                                autoComplete={"username"}
+                                                placeholder={"You UoB username"}
+                                                required
+                                            />
+                                            <InputGroup.Text>@bristol.ac.uk</InputGroup.Text>
+                                        </InputGroup>
+
+                                    </Form.Group>
+
+                                    <Form.Group className={"m-3"}>
+                                        <Form.Label>Password:</Form.Label>
+
                                         <Form.Control
-                                            id="register_username"
-                                            name="register_username"
-                                            type="search"
-                                            autoComplete="username"
-                                            placeholder="You UoB username"
+                                            id={FIRST_PASSWORD}
+                                            name={FIRST_PASSWORD}
+                                            type={"password"}
+                                            autoComplete={"current-password"}
                                             required
                                         />
-                                        <InputGroup.Text>@bristol.ac.uk</InputGroup.Text>
-                                    </InputGroup>
-                                </Form.Group>
+                                    </Form.Group>
+                                    <Form.Group className={"m-3"}>
+                                        <Form.Label>Confirm Password:</Form.Label>
 
-                                <Form.Group>
-                                    <Form.Label>Password</Form.Label>
+                                        <Form.Control
+                                            id={REPEAT_PASSWORD}
+                                            name={REPEAT_PASSWORD}
+                                            type={"password"}
+                                            autoComplete={"current-password"}
+                                            required
+                                        />
 
-                                    <Form.Control
-                                        id="first_password"
-                                        name="first_password"
-                                        type="password"
-                                        autoComplete="current-password"
-                                        required
-                                    />
-                                </Form.Group>
-                                <Form.Group>
-                                    <Form.Label>Confirm Password</Form.Label>
+                                    </Form.Group>
 
-                                    <Form.Control
-                                        id="repeat_password"
-                                        name="repeat_password"
-                                        type="password"
-                                        autoComplete="current-password"
-                                        required
-                                    />
-                                </Form.Group>
+                                    <Button variant={"success"}
+                                        type={"submit"} size={"lg"}
+                                        className={"m-3 shadow-sm rounded"}>Register</Button>
 
-                                <Button type="submit">Register</Button>
-
-                            </Form>
-                        </Tab>
-                    </Tabs>
-                </Card.Body>
-            </Card>
+                                </Form>
+                            </Tab>
+                        </Tabs>
+                    </Card.Body>
+                </Card>
+            </Container>
         </Container>
     );
 }

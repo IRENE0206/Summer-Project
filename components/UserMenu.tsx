@@ -2,6 +2,7 @@
 import {Alert, Container, Dropdown, Toast} from "react-bootstrap";
 import React, {useContext, useState} from "react";
 import UserInfoContext from "@/utils/UserInfoContext";
+import {SESSION_IDENTIFIER} from "@/utils/constants";
 
 export default function UserMenu() {
     const userInfo = useContext(UserInfoContext);
@@ -18,7 +19,7 @@ export default function UserMenu() {
     const [toastMessage, setToastMessage] = useState("");
 
     async function onClickHandler() {
-        localStorage.removeItem("sessionIdentifier");
+        localStorage.removeItem(SESSION_IDENTIFIER);
         const api = "/api/logout";
         const res = await fetch(api, {
             method: "POST",

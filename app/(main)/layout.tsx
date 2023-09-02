@@ -12,7 +12,7 @@ export default function MainLayout({children}: {
     const passAuth = useAuth();
 
     const {userInfo, error} = useUserInfo();
-
+    console.log(userInfo);
     if (!passAuth) {
         return (<Container><p>You need to log in first</p></Container>);
     } else if (!userInfo) {

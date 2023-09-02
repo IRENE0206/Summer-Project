@@ -6,7 +6,7 @@ from flask import (
 from flask_cors import CORS
 from sqlalchemy.exc import SQLAlchemyError
 
-from .auth import login_required, is_admin
+from .auth import login_required, is_admin, USER_ID, USER_ROLE
 from .db import db, Workbook, Exercise, Answer, Line, UserRole
 from .util import (
     succeed, unauthorized_handler, badrequest_handler, conflict_handler, internal_server_error_handler, notfound_handler
@@ -14,6 +14,12 @@ from .util import (
 
 bp = Blueprint("app", __name__, url_prefix="/api")
 CORS(bp)
+
+WORKBOOK_ID = "workbook_id"
+WORKBOOK_NAME = "workbook_name"
+RELEASE_DATE = "release_date"
+LAST_EDIT = "last_edit"
+EXERCISE = "exercise"
 
 
 @login_required
@@ -30,10 +36,10 @@ def get_workbooks():
             ).scalars().all()
 
         return jsonify([{
-            "workbook_id": workbook.workbook_id,
-            "workbook_name": workbook.workbook_name,
-            "release_date": workbook.release_date,
-            "last_edit": workbook.last_edit
+            WORKBOOK_ID: workbook.workbook_id,
+            WORKBOOK_NAME: workbook.workbook_name,
+            RELEASE_DATE: workbook.release_date,
+            LAST_EDIT: workbook.last_edit
         } for workbook in workbooks]), 200
     except SQLAlchemyError:
         return internal_server_error_handler()
@@ -47,7 +53,7 @@ def get_workbook(user_role, workbook_id):
     except ValueError:
         return badrequest_handler("Invalid user_role")
 
-    if role.value != session.get("user_role"):
+    if role.value != session.get(USER_ROLE):
         return conflict_handler("'user_role' does not match with current session user's role")
 
     is_user_admin = is_admin()
@@ -71,7 +77,7 @@ def fetch_workbook_with_exercises(workbook_id: int, is_user_admin: bool = False)
 
 def fetch_user_answer(exercise_id: int):
     return db.session.execute(
-        db.select(Answer).filter_by(exercise_id=exercise_id, user_id=session["user_id"])
+        db.select(Answer).filter_by(exercise_id=exercise_id, user_id=session[USER_ID])
     ).scalar_one_or_none()
 
 
@@ -83,32 +89,40 @@ def fetch_answer_lines(answer_id: int):
 
 def format_workbook_response(workbook, exclude_feedback=False):
     response = {
-        "workbook_name": workbook.workbook_name,
-        "release_date": workbook.workbook.release_date,
-        "last_edit": workbook.last_edit,
-        "exercises": [],
+        WORKBOOK_NAME: workbook.workbook_name,
+        RELEASE_DATE: workbook.workbook.release_date,
+        LAST_EDIT: workbook.last_edit,
+        EXERCISES: [],
     }
     for exercise in workbook.exercises:
         answer = fetch_user_answer(exercise.exercise_id)
         lines_data = []
         if answer:
             lines_data = [{
-                "line_index": line.line_index,
-                "variable": line.variable,
-                "rules": line.rules
+                LINE_INDEX: line.line_index,
+                VARIABLE: line.variable,
+                RULES: line.rules
             } for line in fetch_answer_lines(answer.answer_id)]
 
         exercise_data = {
-            "exercise_id": exercise.exercise_id,
-            "exercise_number": exercise.exercise_number,
-            "exercise_content": exercise.exercise_content,
-            "lines": lines_data,
+            EXERCISE_ID: exercise.exercise_id,
+            EXERCISE_NUMBER: exercise.exercise_number,
+            EXERCISE_CONTENT: exercise.exercise_content,
+            LINES: lines_data,
         }
         if (not exclude_feedback) and answer:
-            exercise_data["feedback"] = answer.feedback
-        response["exercises"].append(exercise_data)
+            exercise_data[FEEDBACK] = answer.feedback
+        response[EXERCISES].append(exercise_data)
 
     return response
+
+
+EXERCISE_ID = "exercise_id"
+EXERCISE_NUMBER = "exercise_number"
+EXERCISE_CONTENT = "exercise_content"
+LINES = "lines"
+FEEDBACK = "feedback"
+EXERCISES = "exercises"
 
 
 @login_required
@@ -118,7 +132,7 @@ def edit_workbook(user_role, workbook_id):
         role = UserRole(user_role)
     except ValueError:
         return badrequest_handler("Invalid UserRole")
-    if role.value != db.session["user_role"] or db.session["user_role"] != UserRole.ADMIN:
+    if role.value != db.session[USER_ROLE] or db.session[USER_ROLE] != UserRole.ADMIN:
         return unauthorized_handler("Only admin user can edit workbooks")
 
     data = request.get_json()
@@ -145,7 +159,7 @@ def add_workbook():
         workbook = create_workbook(data)
         db.session.add(workbook)
         db.session.flush()
-        q_and_a_s = data.get("exercises", [])
+        q_and_a_s = data.get(EXERCISES, [])
         for q_and_a in q_and_a_s:
             validate_exercise_data(q_and_a)
             exercise = create_exercise(q_and_a, workbook.workbook_id)
@@ -155,7 +169,7 @@ def add_workbook():
             answer = create_answer(exercise.exercise_id)
             db.session.add(answer)
             db.session.flush()
-            for line_data in q_and_a["answer"]:
+            for line_data in q_and_a[ANSWER]:
                 validate_line_data(line_data)
                 line = create_line(line_data, exercise.exercise_id)
                 if line:
@@ -173,24 +187,24 @@ def add_workbook():
 
 def create_workbook(workbook_data) -> Workbook:
     # Convert input string to datetime object; assuming format "YYYY-MM-DDTHH:MM"
-    release_date = datetime.strptime(workbook_data["release_date"], "%Y-%m-%dT%H:%M")
-    return Workbook(workbook_name=workbook_data["workbook_name"], release_date=release_date, last_edit=datetime.now())
+    release_date = datetime.strptime(workbook_data[RELEASE_DATE], "%Y-%m-%dT%H:%M")
+    return Workbook(workbook_name=workbook_data[WORKBOOK_NAME], release_date=release_date, last_edit=datetime.now())
 
 
 def create_exercise(exercise_data, workbook_id: int) -> Exercise:
-    return Exercise(exercise_number=exercise_data["number"].strip(),
-                    exercise_content=exercise_data["question"].strip(),
+    return Exercise(exercise_number=exercise_data[NUMBER].strip(),
+                    exercise_content=exercise_data[QUESTION].strip(),
                     workbook_id=workbook_id)
 
 
 def create_answer(exercise_id: int) -> Answer:
-    return Answer(feedback="", exercise_id=exercise_id, user_id=session.get("user_id"))
+    return Answer(feedback="", exercise_id=exercise_id, user_id=session.get(USER_ID))
 
 
 def create_line(line_data, answer_id: int) -> Line | None:
-    index = line_data["line_index"]
-    variable_stripped = line_data["variable"].strip()
-    rules_stripped = line_data["rules"].strip()
+    index = line_data[LINE_INDEX]
+    variable_stripped = line_data[VARIABLE].strip()
+    rules_stripped = line_data[RULES].strip()
     if not (variable_stripped or rules_stripped):
         return None
     return Line(line_index=index,
@@ -200,20 +214,29 @@ def create_line(line_data, answer_id: int) -> Line | None:
 
 
 def validate_workbook_data(data) -> None:
-    required_keys = ["workbook_name", "release_date", "exercises"]
+    required_keys = [WORKBOOK_NAME, RELEASE_DATE, EXERCISES]
     entity_name = "workbooks"
     validate_data(data, required_keys, entity_name)
 
 
 def validate_exercise_data(data) -> None:
-    required_keys = ["number", "question", "answer"]
-    entity_name = "exercise"
+    required_keys = [NUMBER, QUESTION, ANSWER]
+    entity_name = EXERCISE
     validate_data(data, required_keys, entity_name)
 
 
+NUMBER = "number"
+QUESTION = "question"
+ANSWER = "answer"
+LINE = "line"
+LINE_INDEX = "line_index"
+VARIABLE = "variable"
+RULES = "rules"
+
+
 def validate_line_data(data) -> None:
-    required_keys = ["line_index", "variable", "rules"]
-    entity_name = "line"
+    required_keys = [LINE_INDEX, VARIABLE, RULES]
+    entity_name = LINE
     validate_data(data, required_keys, entity_name)
 
 

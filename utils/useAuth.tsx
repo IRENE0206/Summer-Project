@@ -2,13 +2,12 @@
 import {useRouter} from "next/navigation";
 import CryptoJS from "crypto-js";
 import {useEffect, useState} from "react";
+import {SECRET_KEY, SESSION_IDENTIFIER} from "@/utils/constants";
 
 export default function useAuth() {
     console.log("utils/UseAuth.tsx");
     const [passAuth, setPassAuth] = useState<boolean>(false);
     const router = useRouter();
-    const SESSION_IDENTIFIER = "session_identifier";
-    const SECRET_KEY = "secretKey";
     const api = "/api/verify_session_identifier";
 
     useEffect(() => {

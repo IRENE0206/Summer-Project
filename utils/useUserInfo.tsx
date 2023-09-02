@@ -27,6 +27,7 @@ export default function useUserInfo() {
                 setUserInfo(data);
             })
             .catch((err) => {
+                console.log(err);
                 setError(new Error(err.message || "An unknown error occurred while fetching user info"));
             });
     }, []);

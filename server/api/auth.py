@@ -15,10 +15,12 @@ bp = Blueprint("auth", __name__, url_prefix="/api")
 CORS(bp)  # TODO: Add CORS configurations for safety.
 
 USER_ID = "user_id"
-USERNAME = "username"
+USER_NAME = "user_name"
 USER_ROLE = "user_role"
 SESSION_IDENTIFIER = "session_identifier"
 PASSWORD = "password"
+
+ADMIN_USERNAME = "gn22297"
 
 
 @bp.route("/register", methods=["POST"])
@@ -28,11 +30,11 @@ def register():
     if not data:
         return badrequest_handler("Invalid data format.")
 
-    username = data.get(USER_ROLE)
+    user_name = data.get(USER_NAME)
     password = data.get(PASSWORD)
     repeat_password = data.get("repeat_password")
 
-    if not username:
+    if not user_name:
         return badrequest_handler("Username is required.")
     if not password:
         return badrequest_handler("Password is required.")
@@ -40,18 +42,18 @@ def register():
         return conflict_handler("Passwords do not match.")
 
     try:
-        role = UserRole.REGULAR.value
+        role = UserRole.REGULAR
         # TODO: change the code to external configuration or database-driven roles
-        if username == "gn22297":
-            role = UserRole.ADMIN.value
-        new_user = User(username=username, password=generate_password_hash(password), role=role)
+        if user_name == ADMIN_USERNAME:
+            role = UserRole.ADMIN
+        new_user = User(user_name=user_name, password=generate_password_hash(password), role=role)
         db.session.add(new_user)
         db.session.commit()
     except IntegrityError:
-        return conflict_handler(f"User {username} is already registered.")
+        return conflict_handler(f"User {user_name} is already registered.")
 
     session[USER_ID] = new_user.user_id
-    session[USERNAME] = username
+    session[USER_NAME] = user_name
     session[USER_ROLE] = role
     session[SESSION_IDENTIFIER] = generate_session_identifier()
     return succeed(
@@ -68,23 +70,23 @@ def login():
     if not data:
         return badrequest_handler("Invalid data format.")
 
-    if not all(key in data for key in [USERNAME, PASSWORD]):
+    if not all(key in data for key in [USER_NAME, PASSWORD]):
         return badrequest_handler("Missing required fields for login")
 
-    username = data.get(USERNAME)
+    user_name = data.get(USER_NAME)
     password = data.get(PASSWORD)
 
     user = db.session.execute(
-        db.select(User).filter_by(username=username)
+        db.select(User).filter_by(user_name=user_name)
     ).scalar_one_or_none()
     if user is None:
-        return notfound_handler(f"No user named '{username}' found.")
+        return notfound_handler(f"No user named '{user_name}' found.")
     if not check_password_hash(user.password, password):
         return badrequest_handler("Invalid credentials.")
 
     session[USER_ID] = user.user_id
     session[USER_ROLE] = user.role
-    session[USERNAME] = user.username
+    session[USER_NAME] = user.user_name
     session[SESSION_IDENTIFIER] = generate_session_identifier()
     return succeed(
         "You have logged in successfully",
@@ -95,7 +97,7 @@ def login():
 def login_required(f):
     @wraps(f)
     def wrapped_view(*args, **kwargs):
-        if "user_id" not in session:
+        if USER_ID not in session:
             return unauthorized_handler("Login required")
         return f(*args, **kwargs)
 
@@ -105,10 +107,10 @@ def login_required(f):
 @login_required
 @bp.route("/user", methods=["POST"])
 def get_user():
-    if "user_id" in session and USERNAME in session and USER_ROLE in session:
+    if USER_ID in session and USER_NAME in session and USER_ROLE in session:
         user_data = {
             USER_ID: session[USER_ID],
-            USERNAME: session[USERNAME],
+            USER_NAME: session[USER_NAME],
             USER_ROLE: session[USER_ROLE].value,
         }
         return jsonify(user_data), 200
@@ -120,7 +122,7 @@ def get_user():
 @login_required
 @bp.route("/is_admin", methods=["POST"])
 def is_session_user_admin():
-    if "user_role" in session and session[USER_ROLE] is not None:
+    if USER_ROLE in session and session[USER_ROLE] is not None:
         is_admin_status = (session[USER_ROLE] == UserRole.ADMIN)
         return jsonify({"is_admin": is_admin_status}), 200
     else:
@@ -136,7 +138,7 @@ def verify_session_identifier():
     if token == session.get(SESSION_IDENTIFIER):
         return succeed("Successfully authenticated")
     return unauthorized_handler(
-        "token" + token + "Given token failed to pass authentication " + session.get("session_identifier"))
+        "token" + token + "Given token failed to pass authentication " + session.get(SESSION_IDENTIFIER))
 
 
 @bp.route("/logout", methods=["POST"])
