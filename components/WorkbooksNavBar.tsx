@@ -1,7 +1,7 @@
 import "bootstrap/dist/css/bootstrap.css";
 import {WorkbookInterface} from "@/interfaces/Interfaces";
 import {useEffect, useState} from "react";
-import {Nav} from "react-bootstrap";
+import {Alert, Nav} from "react-bootstrap";
 import Button from "react-bootstrap/Button";
 
 export default function WorkbooksNavBar() {
@@ -40,38 +40,40 @@ export default function WorkbooksNavBar() {
     }, []);
 
     if (error) {
-        return <p>Error loading workbooks: {error.message}</p>;
+        return (
+            <Alert variant={"danger"} className={"text-center"}> {/* Used Alert for better error visibility */}
+                Error loading workbooks: {error.message}
+            </Alert>
+        );
     }
     return (
-        <Nav
-            variant="pills"
-            navbarScroll={true}
-            className="justify-content-end flex-column"
-        >
-            {workbooks ? (
+        <>
+            {workbooks && workbooks.length > 0 ? (
                 workbooks.map((workbook) => (
-                    <Nav.Item key={workbook["workbook_id"]}>
+                    <Nav.Item key={workbook["workbook_id"]} className={"m-2"}>
                         <Nav.Link
-                            href={`/workbook/${workbook["workbook_id"]}`}
+                            href={`/workbooks/${workbook["workbook_id"]}`}
                         >
                             <Button
                                 variant="outline-primary"
                                 type="button"
+                                className={"w-100"}
                             >
                                 {workbook["workbook_name"]}
                             </Button>
                         </Nav.Link>
                     </Nav.Item>
-
-
                 ))
             ) : (
-                <p>Loading workbooks...</p>
+                <Alert variant={"info"} className={"text-center"}>
+                    Loading workbooks...
+                </Alert>
             )}
 
-            <Nav.Link href="">WORKBOOK NAME</Nav.Link>
-
-            <p>current workbook count: {workbooks.length}</p>
-        </Nav>
+            <Alert variant={"secondary"}
+                className={"text-center w-100 mt-3"}>
+                Current workbook count: {workbooks.length}
+            </Alert>
+        </>
     );
 }
