@@ -1,5 +1,5 @@
 "use client";
-import {Alert, Container, Dropdown, Nav, Toast} from "react-bootstrap";
+import {Alert, Container, Dropdown, Toast} from "react-bootstrap";
 import React, {useContext, useState} from "react";
 import UserInfoContext from "@/utils/UserInfoContext";
 import {SESSION_IDENTIFIER} from "@/utils/constants";
@@ -38,40 +38,39 @@ export default function UserMenu() {
     }
 
     return (
-        <Nav.Item>
-            <Container className={"d-flex flex-column justify-content-end"}>
-                <Dropdown
-                    className={"m-3"}
-                    data-bs-theme={"dark"}
-                    drop={"up-centered"}
-                    align={"start"}
+        <>
+            <Dropdown
+                className={"w-100"}
+                data-bs-theme={"dark"}
+                drop={"up-centered"}
+                align={"start"}
+            >
+                <Dropdown.Toggle
+                    variant={"success"}
+                    id="user-menu-dropdown"
+                    size={"lg"}
+                    className={"w-100 text-center"}
                 >
-                    <Dropdown.Toggle
-                        variant={"success"}
-                        id="user-menu-dropdown"
-                        size={"lg"}
-                    >
-                        <span>{userInfo.user_name}</span>
-                    </Dropdown.Toggle>
-                    <Dropdown.Menu align={"start"}>
-                        <Dropdown.Item as={"button"} href="/" onClick={onClickHandler}>
-                            Sign out
-                        </Dropdown.Item>
-                    </Dropdown.Menu>
-                </Dropdown>
-                <Toast
-                    onClose={() => setShowToast(false)}
-                    show={showToast}
-                    className={"bottom end m-3"}
-                    autohide
-                >
-                    <Toast.Header>
-                        <strong className="me-auto">Error</strong>
-                    </Toast.Header>
-                    <Toast.Body>{toastMessage}</Toast.Body>
-                </Toast>
-            </Container>
+                    <span>{userInfo.user_name}</span>
+                </Dropdown.Toggle>
+                <Dropdown.Menu align={"start"} className={"w-100"}>
+                    <Dropdown.Item as={"button"} href="/" onClick={onClickHandler}>
+                        Sign out
+                    </Dropdown.Item>
+                </Dropdown.Menu>
+            </Dropdown>
+            <Toast
+                onClose={() => setShowToast(false)}
+                show={showToast}
+                className={"bottom end w-100"}
+                autohide
+            >
+                <Toast.Header>
+                    <strong className="me-auto">Error</strong>
+                </Toast.Header>
+                <Toast.Body>{toastMessage}</Toast.Body>
+            </Toast>
+        </>
 
-        </Nav.Item>
     );
 }

@@ -29,37 +29,41 @@ export default function MainLayout({children}: {
     }
 
     return (
-        <UserInfoContext.Provider value={userInfo}>
-            <Container>
-                <Row>
+        <Container fluid>
+            <Row className={"py-3"}>
+                <Col>
                     <header>
                         <Navbar
+                            bg={"dark"}
                             variant={"dark"}
-                            expand={"sm"}
-                            sticky={"top"}
+                            expand={"md"}
+                            fixed={"top"}  // Fixed Navbar
                             onToggle={handleShowOffCanvas}
+                            className={"d-flex justify-content-between border-bottom border-dark-subtle shadow-sm"}
                         >
-                            <Col><Navbar.Toggle/></Col>
-                            <Col><Navbar.Brand>WEBSITE NAME{/*TODO*/}</Navbar.Brand></Col>
-                            <Col></Col>
+                            <Navbar.Toggle/>
+                            <Navbar.Brand className={"mx-auto"}>WEBSITE NAME</Navbar.Brand>
                         </Navbar>
                     </header>
-                </Row>
-
-                <Row>
-                    <Col sm={4}>
-                        <OffCanvasContext.Provider value={{showOffCanvas, handleShowOffCanvas}}>
-                            <SideBar/>
-                        </OffCanvasContext.Provider>
-
+                </Col>
+            </Row>
+            <Row className={"mt-5"}> {/* Added mt-5 to offset the content below the fixed navbar */}
+                <UserInfoContext.Provider value={userInfo}>
+                    {/* Sidebar */}
+                    <Col md={3} lg={2} className={"d-none d-md-block"}>
+                        <aside
+                            className={"position-fixed start-0 top-0 pt-5 h-100 d-flex py-0 col-md-5 overflow-auto"}>
+                            <OffCanvasContext.Provider value={{showOffCanvas, handleShowOffCanvas}}>
+                                <SideBar/>
+                            </OffCanvasContext.Provider>
+                        </aside>
                     </Col>
-                    <Col sm={8}>
-                        <main>{children}</main>
+                    {/* Main Content */}
+                    <Col className={"ml-md-3 ml-lg-2"}>
+                        <main className={"d-flex px-3"}>{children}</main>
                     </Col>
-                </Row>
-
-            </Container>
-
-        </UserInfoContext.Provider>
+                </UserInfoContext.Provider>
+            </Row>
+        </Container>
     );
 }

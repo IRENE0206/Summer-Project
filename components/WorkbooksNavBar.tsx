@@ -47,17 +47,23 @@ export default function WorkbooksNavBar() {
         );
     }
     return (
-        <>
+        <Nav
+            variant={"pills"}
+            navbarScroll={true}
+            className={"h-100 flex-column w-100"}
+            justify
+        >
             {workbooks && workbooks.length > 0 ? (
                 workbooks.map((workbook) => (
-                    <Nav.Item key={workbook["workbook_id"]} className={"m-2"}>
+                    <Nav.Item key={workbook["workbook_id"]} className={"w-100 text-center"}>
                         <Nav.Link
                             href={`/workbooks/${workbook["workbook_id"]}`}
+                            className={"text-center"}
                         >
                             <Button
                                 variant="outline-primary"
                                 type="button"
-                                className={"w-100"}
+                                className={"w-100 text-center"}
                             >
                                 {workbook["workbook_name"]}
                             </Button>
@@ -65,15 +71,13 @@ export default function WorkbooksNavBar() {
                     </Nav.Item>
                 ))
             ) : (
-                <Alert variant={"info"} className={"text-center"}>
-                    Loading workbooks...
-                </Alert>
-            )}
+                <Nav.Item className={"w-100 text-center"}>
+                    <Alert variant={"info"} className={"text-center w-100"}>
+                        Loading workbooks...
+                    </Alert>
+                </Nav.Item>
 
-            <Alert variant={"secondary"}
-                className={"text-center w-100 mt-3"}>
-                Current workbook count: {workbooks.length}
-            </Alert>
-        </>
+            )}
+        </Nav>
     );
 }

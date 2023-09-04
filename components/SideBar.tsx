@@ -1,11 +1,14 @@
 "use client";
 import {UserRole} from "@/interfaces/Interfaces";
-import {Alert, Button, Container, Nav, Offcanvas} from "react-bootstrap";
+import {Alert, Button, Container, Offcanvas} from "react-bootstrap";
 import WorkbooksNavBar from "@/components/WorkbooksNavBar";
 import UserMenu from "@/components/UserMenu";
 import React, {useContext} from "react";
 import UserInfoContext from "@/utils/UserInfoContext";
 import OffCanvasContext from "@/utils/OffCanvasContext";
+import Link from "next/link";
+import Row from "react-bootstrap/Row";
+import Col from "react-bootstrap/Col";
 
 export default function SideBar() {
     const userInfo = useContext(UserInfoContext);
@@ -22,39 +25,44 @@ export default function SideBar() {
     const {showOffCanvas, handleShowOffCanvas} = useContext(OffCanvasContext);
     return (
         <Offcanvas
-            backdrop={false}
-            scroll={true}
-            responsive={"sm"}
+            backdrop={"static"}
+            responsive={"md"}
             placement={"start"}
             show={showOffCanvas}
             onHide={handleShowOffCanvas}
-            className={"d-flex flex-column"}
+            className={"h-100 bg-black shadow-lg pt-3"}
         >
-            <Offcanvas.Header closeButton>
-                <Offcanvas.Title>WEBSITE NAME{/*TODO*/}</Offcanvas.Title>
+            <Offcanvas.Header closeButton closeVariant={"white"} className={"bg-dark mb-3"}>
+                <Offcanvas.Title className={"text-white"}>WEBSITE NAME</Offcanvas.Title>
             </Offcanvas.Header>
 
-            <Offcanvas.Body>
-                <Container fluid className={"m-3"}>
-                    <Nav
-                        variant={"pills"}
-                        navbarScroll={true}
-                        className={"flex-column align-items-center mb-3"}
-                        justify
-                    >
-                        {user_role === UserRole.Admin ? (
-                            <Nav.Item>
-                                <Nav.Link href="/workbooks/new">
-                                    <Button variant="outline-primary">+ New workbook</Button>
-                                </Nav.Link>
-                            </Nav.Item>
-
-                        ) : (<></>)}
-                        <WorkbooksNavBar/>
-                        <UserMenu/>
-                    </Nav>
+            <Offcanvas.Body
+                className={"d-flex flex-column p-3"}>
+                <Container fluid className={"h-100 flex-column p-0 m-0"}>
+                    {user_role === UserRole.Admin ? (
+                        <Row className={"position-relative top border-bottom border-secondary pb-3"}>
+                            <Col>
+                                <Link href="/workbooks/new" className={"text-center"}>
+                                    <Button variant="outline-primary" className={"w-100 shadow-sm"} size={"lg"}>
+                                        + New workbook
+                                    </Button>
+                                </Link>
+                            </Col>
+                        </Row>
+                    ) : null}
+                    <Row className={"my-3 flex-grow-1"}>
+                        <Col>
+                            <WorkbooksNavBar/>
+                        </Col>
+                    </Row>
+                    <Row className={"pt-3 border-top border-secondary"}>
+                        <Col>
+                            <UserMenu/>
+                        </Col>
+                    </Row>
                 </Container>
             </Offcanvas.Body>
         </Offcanvas>
+
     );
 }
