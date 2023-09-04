@@ -50,29 +50,25 @@ export default function WorkbooksNavBar() {
         <Nav
             variant={"pills"}
             navbarScroll={true}
-            className={"h-100 flex-column w-100"}
+            className={"h-100 flex-column text-center"}
             justify
         >
             {workbooks && workbooks.length > 0 ? (
                 workbooks.map((workbook) => (
                     <Nav.Item key={workbook["workbook_id"]} className={"w-100 text-center"}>
-                        <Nav.Link
+                        <Button
                             href={`/workbooks/${workbook["workbook_id"]}`}
-                            className={"text-center"}
+                            variant="outline-primary"
+                            type="button"
+                            className={"px-3 text-center shadow-sm"}
                         >
-                            <Button
-                                variant="outline-primary"
-                                type="button"
-                                className={"w-100 text-center"}
-                            >
-                                {workbook["workbook_name"]}
-                            </Button>
-                        </Nav.Link>
+                            {workbook["workbook_name"]}
+                        </Button>
                     </Nav.Item>
                 ))
             ) : (
-                <Nav.Item className={"w-100 text-center"}>
-                    <Alert variant={"info"} className={"text-center w-100"}>
+                <Nav.Item className={"w-100 text-center px-3"}>
+                    <Alert variant={"info"} className={"text-center shadow-sm"}>
                         Loading workbooks...
                     </Alert>
                 </Nav.Item>

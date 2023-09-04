@@ -1,5 +1,5 @@
 "use client";
-import {Alert, Container, Dropdown, Toast} from "react-bootstrap";
+import {Alert, Container, Dropdown, Nav, Toast} from "react-bootstrap";
 import React, {useContext, useState} from "react";
 import UserInfoContext from "@/utils/UserInfoContext";
 import {SESSION_IDENTIFIER} from "@/utils/constants";
@@ -38,7 +38,7 @@ export default function UserMenu() {
     }
 
     return (
-        <>
+        <Nav.Item className={"px-3"}>
             <Dropdown
                 className={"w-100"}
                 data-bs-theme={"dark"}
@@ -49,7 +49,7 @@ export default function UserMenu() {
                     variant={"success"}
                     id="user-menu-dropdown"
                     size={"lg"}
-                    className={"w-100 text-center"}
+                    className={"shadow-sm w-100 text-center"}
                 >
                     <span>{userInfo.user_name}</span>
                 </Dropdown.Toggle>
@@ -70,7 +70,7 @@ export default function UserMenu() {
                 </Toast.Header>
                 <Toast.Body>{toastMessage}</Toast.Body>
             </Toast>
-        </>
+        </Nav.Item>
 
     );
 }

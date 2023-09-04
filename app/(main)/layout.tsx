@@ -29,9 +29,9 @@ export default function MainLayout({children}: {
     }
 
     return (
-        <Container fluid>
-            <Row className={"py-3"}>
-                <Col>
+        <Container fluid className={"p-0 m-0"}>
+            <Row className={"w-100 py-3 px-0 mx-0"}>
+                <Col className={"w-100 h-100 p-0 m-0"}>
                     <header>
                         <Navbar
                             bg={"dark"}
@@ -47,20 +47,20 @@ export default function MainLayout({children}: {
                     </header>
                 </Col>
             </Row>
-            <Row className={"mt-5"}> {/* Added mt-5 to offset the content below the fixed navbar */}
+            <Row className={"w-100 mt-5 px-0 mx-0"}> {/* Added mt-5 to offset the content below the fixed navbar */}
                 <UserInfoContext.Provider value={userInfo}>
                     {/* Sidebar */}
-                    <Col md={3} lg={2} className={"d-none d-md-block"}>
+                    <Col md={3} lg={2} className={"ms-0 me-3 p-0 h-100"}>
                         <aside
-                            className={"position-fixed start-0 top-0 pt-5 h-100 d-flex py-0 col-md-5 overflow-auto"}>
+                            className={"position-fixed start-0 top-0 pt-5 h-100 my-0"}>
                             <OffCanvasContext.Provider value={{showOffCanvas, handleShowOffCanvas}}>
                                 <SideBar/>
                             </OffCanvasContext.Provider>
                         </aside>
                     </Col>
                     {/* Main Content */}
-                    <Col className={"ml-md-3 ml-lg-2"}>
-                        <main className={"d-flex px-3"}>{children}</main>
+                    <Col className={"p-0 h-100 ms-md-5"}>
+                        <main className={"d-flex p-3"}>{children}</main>
                     </Col>
                 </UserInfoContext.Provider>
             </Row>
