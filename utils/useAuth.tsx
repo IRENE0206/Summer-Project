@@ -5,50 +5,52 @@ import {useEffect, useState} from "react";
 import {SECRET_KEY, SESSION_IDENTIFIER} from "@/utils/constants";
 
 export default function useAuth() {
-    console.log("utils/UseAuth.tsx");
-    const [passAuth, setPassAuth] = useState<boolean>(false);
+    console.log("Before useAuth useState calls");
+    const [passAuth, setPassAuth] = useState<boolean | null>(null);
     const router = useRouter();
     const api = "/api/verify_session_identifier";
 
     useEffect(() => {
-        const encryptedSessionIdentifier = localStorage.getItem(SESSION_IDENTIFIER);
-        console.log("encryptedSessionIdentifier " + encryptedSessionIdentifier);
-
-        if (!encryptedSessionIdentifier) {
-            // Redirect to login page if the session identifier is not found
-            setPassAuth(false);
-            console.log("Redirect to login page");
-            router.push("/");
+        if (passAuth !== null) {
             return;
         }
-        const decryptedSessionIdentifier = CryptoJS.AES.decrypt(
-            encryptedSessionIdentifier,
-            SECRET_KEY,
-        ).toString(CryptoJS.enc.Utf8);
-        console.log("decryptedSessionIdentifier " + decryptedSessionIdentifier);
+        const authenticate = async () => {
+            const encryptedSessionIdentifier = localStorage.getItem(SESSION_IDENTIFIER);
 
-
-        fetch(api, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: decryptedSessionIdentifier,
-            },
-        })
-            .then(async (res) => {
-                const data = await res.json();
-                if (res.ok) {
-                    setPassAuth(true);
-                    console.log("Pass auth");
-                } else {
-                    throw new Error(data.message || "Unknown Error");
-                }
-            })
-            .catch((error) => {
-                console.error("Error: ", error);
+            // Redirect to login page if the session identifier is not found
+            if (!encryptedSessionIdentifier) {
                 setPassAuth(false);
                 router.push("/");
+                return;
+            }
+
+            const decryptedSessionIdentifier = CryptoJS.AES.decrypt(
+                encryptedSessionIdentifier,
+                SECRET_KEY
+            ).toString(CryptoJS.enc.Utf8);
+
+            const res = await fetch(api, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: decryptedSessionIdentifier,
+                },
             });
-    }, []);
+
+            const data = await res.json();
+
+            if (res.ok) {
+                setPassAuth(true);
+            } else {
+                // Handle error without throwing
+                console.error(data.message || "Unknown Error");
+                setPassAuth(false);
+                router.push("/");
+            }
+        };
+
+        // Run the authentication
+        authenticate().catch(e => console.error(e));
+    }, [passAuth]);
     return passAuth;
 }

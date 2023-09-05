@@ -1,24 +1,23 @@
 "use client";
-import {UserRole} from "@/interfaces/Interfaces";
 import {Alert, Button, Container, Nav, Offcanvas} from "react-bootstrap";
 import WorkbooksNavBar from "@/components/WorkbooksNavBar";
 import UserMenu from "@/components/UserMenu";
 import React, {useContext} from "react";
-import UserInfoContext from "@/utils/UserInfoContext";
 import OffCanvasContext from "@/utils/OffCanvasContext";
+import {UserInfoContext} from "@/app/(main)/layout";
 
 export default function SideBar() {
     const userInfo = useContext(UserInfoContext);
-    if (!userInfo) {
+    if (userInfo === null) {
         return (
             <Container>
-                <Alert variant="danger" className={"text-center"}>
-                    Failed to fetch user information. Please try again.
+                <Alert variant={"danger"} className={"text-center"}>
+                    Failed to fetch user information.
                 </Alert>
             </Container>
         );
     }
-    const user_role = userInfo.user_role;
+    const is_admin = userInfo.is_admin;
     const {showOffCanvas, handleShowOffCanvas} = useContext(OffCanvasContext);
     return (
         <Offcanvas
@@ -30,12 +29,14 @@ export default function SideBar() {
             className={"h-100 p-0 m-0 bg-black shadow-lg"}
         >
             <Offcanvas.Header closeButton closeVariant={"white"} className={"bg-dark"}>
-                <Offcanvas.Title className={"text-white"}>WEBSITE NAME</Offcanvas.Title>
+                <Offcanvas.Title className={"text-white"}>
+                    WEBSITE NAME
+                </Offcanvas.Title>
             </Offcanvas.Header>
 
             <Offcanvas.Body
                 className={"px-0 py-3 d-flex flex-column h-100"}>
-                {user_role === UserRole.Admin ? (
+                {is_admin ? (
                     <Container fluid
                         className={"p-0 flex-grow-0 text-center border-bottom border-secondary pb-3"}>
                         <Nav.Item className={"px-3"}>
@@ -48,12 +49,18 @@ export default function SideBar() {
 
                 ) : null}
                 <Container fluid className={"p-0 text-center flex-grow-1 my-3"}>
-                    <WorkbooksNavBar/>
+                    <Nav
+                        variant={"pills"}
+                        navbarScroll={true}
+                        className={"h-100 flex-column text-center"}
+                        justify
+                    >
+                        <WorkbooksNavBar/>
+                    </Nav>
                 </Container>
                 <Container fluid className={"p-0 text-center flex-grow-0 pt-3 border-top border-secondary"}>
                     <UserMenu/>
                 </Container>
-
             </Offcanvas.Body>
         </Offcanvas>
 

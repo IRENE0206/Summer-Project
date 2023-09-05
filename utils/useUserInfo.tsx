@@ -10,26 +10,29 @@ export default function useUserInfo() {
     const api = "/api/user";
 
     useEffect(() => {
-        fetch(api, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-        })
-            .then(async (res) => {
-                if (!res.ok) {
-                    const errorData = await res.json();
-                    throw new Error(errorData.message || "Failed to fetch user info");
-                }
-                return res.json();
-            })
-            .then((data: UserInfoInterface) => {
-                setUserInfo(data);
-            })
-            .catch((err) => {
-                console.log(err);
-                setError(new Error(err.message || "An unknown error occurred while fetching user info"));
+        if (userInfo !== null) {
+            return;
+        }
+        const fetchUserInfo = async () => {
+            const res = await fetch(api, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
             });
-    }, []);
+
+            const data = await res.json();
+
+            if (res.ok) {
+                setUserInfo(data);
+            } else {
+                console.error("Error: ", data.message || "Failed to fetch user info");
+                setError(new Error(data.message || "An unknown error occurred while fetching user info"));
+            }
+        };
+
+        // Run the fetch user info function
+        fetchUserInfo().catch(e => console.error(e));
+    }, [userInfo]);
     return {userInfo, error};
 }

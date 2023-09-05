@@ -8,12 +8,7 @@ export interface WorkbookInterface {
 export interface UserInfoInterface {
     user_id: number;
     user_name: string;
-    user_role: UserRole;
-}
-
-export enum UserRole {
-    Admin = "admin",
-    Regular = "regular",
+    is_admin: boolean;
 }
 
 export interface Line {
@@ -21,3 +16,12 @@ export interface Line {
     variable: string;
     rules: string;
 }
+
+export interface QAInterface {
+    id: number,
+    index: number,
+    number: string,
+    question: string,
+    answer: Line[]
+}
+

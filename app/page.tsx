@@ -142,36 +142,38 @@ export default function Index() {
                             >
                                 <Form method="post" onSubmit={handleLoginSubmit}>
                                     <Form.Group className={"m-3"}>
-                                        <Form.Label>Email address:</Form.Label>
-                                        <InputGroup>
-                                            <Form.Control
-                                                id={LOGIN_USERNAME}
-                                                name={LOGIN_USERNAME}
-                                                type="search"
-                                                autoComplete="username"
-                                                placeholder="You UoB username"
-                                                required
-                                            />
-                                            <InputGroup.Text>@bristol.ac.uk</InputGroup.Text>
-                                        </InputGroup>
+                                        <Form.FloatingLabel label={"Email address:"}>
+                                            <InputGroup>
+                                                <Form.Control
+                                                    id={LOGIN_USERNAME}
+                                                    name={LOGIN_USERNAME}
+                                                    type="search"
+                                                    autoComplete="username"
+                                                    required
+                                                />
+                                                <InputGroup.Text>@bristol.ac.uk</InputGroup.Text>
+                                            </InputGroup>
+                                        </Form.FloatingLabel>
                                     </Form.Group>
 
                                     <Form.Group className={"m-3"}>
-                                        <Form.Label>Password:</Form.Label>
+                                        <Form.FloatingLabel label={"Password:"}>
+                                            <Form.Control
+                                                id={LOGIN_PASSWORD}
+                                                name={LOGIN_PASSWORD}
+                                                type={"password"}
+                                                autoComplete={"current-password"}
+                                                required
+                                            />
+                                        </Form.FloatingLabel>
 
-                                        <Form.Control
-                                            id={LOGIN_PASSWORD}
-                                            name={LOGIN_PASSWORD}
-                                            type="password"
-                                            autoComplete="current-password"
-                                            required
-                                        />
                                     </Form.Group>
 
 
                                     <Button variant={"success"} size={"lg"} type={"submit"}
-                                        className={"m-3 rounded"}>Sign
-                                        In</Button>
+                                        className={"m-3 rounded"}>
+                                        Sign In
+                                    </Button>
                                 </Form>
                             </Tab>
 
@@ -183,48 +185,50 @@ export default function Index() {
                             >
                                 <Form method="post" onSubmit={handleRegisterSubmit} className={"mb-3"}>
                                     <Form.Group className={"m-3"}>
-                                        <Form.Label>Email address:</Form.Label>
-                                        <InputGroup>
+                                        <Form.FloatingLabel label={"Email address:"}>
+                                            <InputGroup>
+                                                <Form.Control
+                                                    id={REGISTER_USERNAME}
+                                                    name={REGISTER_USERNAME}
+                                                    type={"search"}
+                                                    autoComplete={"username"}
+                                                    required
+                                                />
+                                                <InputGroup.Text>@bristol.ac.uk</InputGroup.Text>
+                                            </InputGroup>
+                                        </Form.FloatingLabel>
+
+                                    </Form.Group>
+
+                                    <Form.Group className={"m-3"}>
+                                        <Form.FloatingLabel label={"Password:"}>
                                             <Form.Control
-                                                id={REGISTER_USERNAME}
-                                                name={REGISTER_USERNAME}
-                                                type={"search"}
-                                                autoComplete={"username"}
-                                                placeholder={"You UoB username"}
+                                                id={FIRST_PASSWORD}
+                                                name={FIRST_PASSWORD}
+                                                type={"password"}
+                                                autoComplete={"current-password"}
                                                 required
                                             />
-                                            <InputGroup.Text>@bristol.ac.uk</InputGroup.Text>
-                                        </InputGroup>
-
-                                    </Form.Group>
-
-                                    <Form.Group className={"m-3"}>
-                                        <Form.Label>Password:</Form.Label>
-
-                                        <Form.Control
-                                            id={FIRST_PASSWORD}
-                                            name={FIRST_PASSWORD}
-                                            type={"password"}
-                                            autoComplete={"current-password"}
-                                            required
-                                        />
+                                        </Form.FloatingLabel>
                                     </Form.Group>
                                     <Form.Group className={"m-3"}>
-                                        <Form.Label>Confirm Password:</Form.Label>
-
-                                        <Form.Control
-                                            id={REPEAT_PASSWORD}
-                                            name={REPEAT_PASSWORD}
-                                            type={"password"}
-                                            autoComplete={"current-password"}
-                                            required
-                                        />
+                                        <Form.FloatingLabel label={"Confirm Password:"}>
+                                            <Form.Control
+                                                id={REPEAT_PASSWORD}
+                                                name={REPEAT_PASSWORD}
+                                                type={"password"}
+                                                autoComplete={"current-password"}
+                                                required
+                                            />
+                                        </Form.FloatingLabel>
 
                                     </Form.Group>
 
                                     <Button variant={"success"}
                                         type={"submit"} size={"lg"}
-                                        className={"m-3 shadow-sm rounded"}>Register</Button>
+                                        className={"m-3 shadow-sm rounded"}>
+                                        Register
+                                    </Button>
 
                                 </Form>
                             </Tab>

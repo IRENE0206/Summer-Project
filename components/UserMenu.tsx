@@ -1,8 +1,8 @@
 "use client";
 import {Alert, Container, Dropdown, Nav, Toast} from "react-bootstrap";
 import React, {useContext, useState} from "react";
-import UserInfoContext from "@/utils/UserInfoContext";
 import {SESSION_IDENTIFIER} from "@/utils/constants";
+import {UserInfoContext} from "@/app/(main)/layout";
 
 export default function UserMenu() {
     const userInfo = useContext(UserInfoContext);

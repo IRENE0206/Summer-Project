@@ -16,7 +16,8 @@ CORS(bp)  # TODO: Add CORS configurations for safety.
 
 USER_ID = "user_id"
 USER_NAME = "user_name"
-USER_ROLE = "user_role"
+
+IS_ADMIN = "is_admin"
 SESSION_IDENTIFIER = "session_identifier"
 PASSWORD = "password"
 
@@ -54,7 +55,7 @@ def register():
 
     session[USER_ID] = new_user.user_id
     session[USER_NAME] = user_name
-    session[USER_ROLE] = role
+    session[IS_ADMIN] = (role == UserRole.ADMIN)
     session[SESSION_IDENTIFIER] = generate_session_identifier()
     return succeed(
         "You have registered successfully",
@@ -85,7 +86,7 @@ def login():
         return badrequest_handler("Invalid credentials.")
 
     session[USER_ID] = user.user_id
-    session[USER_ROLE] = user.role
+    session[IS_ADMIN] = (user.role == UserRole.ADMIN)
     session[USER_NAME] = user.user_name
     session[SESSION_IDENTIFIER] = generate_session_identifier()
     return succeed(
@@ -107,24 +108,13 @@ def login_required(f):
 @login_required
 @bp.route("/user", methods=["POST"])
 def get_user():
-    if USER_ID in session and USER_NAME in session and USER_ROLE in session:
+    if USER_ID in session and USER_NAME in session and IS_ADMIN in session:
         user_data = {
             USER_ID: session[USER_ID],
             USER_NAME: session[USER_NAME],
-            USER_ROLE: session[USER_ROLE].value,
+            IS_ADMIN: session[IS_ADMIN],
         }
         return jsonify(user_data), 200
-    else:
-        # Handle missing session information
-        return badrequest_handler("Incomplete session information."), 401
-
-
-@login_required
-@bp.route("/is_admin", methods=["POST"])
-def is_session_user_admin():
-    if USER_ROLE in session and session[USER_ROLE] is not None:
-        is_admin_status = (session[USER_ROLE] == UserRole.ADMIN)
-        return jsonify({"is_admin": is_admin_status}), 200
     else:
         # Handle missing session information
         return badrequest_handler("Incomplete session information."), 401
@@ -149,7 +139,3 @@ def logout():
 
 def generate_session_identifier():
     return secrets.token_hex(16)
-
-
-def is_admin() -> bool:
-    return session.get(USER_ROLE) == UserRole.ADMIN

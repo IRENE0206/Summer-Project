@@ -6,10 +6,10 @@ from flask import (
 from flask_cors import CORS
 from sqlalchemy.exc import SQLAlchemyError
 
-from .auth import login_required, is_admin, USER_ID, USER_ROLE
-from .db import db, Workbook, Exercise, Answer, Line, UserRole
+from .auth import login_required, USER_ID, IS_ADMIN
+from .db import db, Workbook, Exercise, Answer, Line
 from .util import (
-    succeed, unauthorized_handler, badrequest_handler, conflict_handler, internal_server_error_handler, notfound_handler
+    succeed, unauthorized_handler, badrequest_handler, internal_server_error_handler, notfound_handler
 )
 
 bp = Blueprint("app", __name__, url_prefix="/api")
@@ -26,7 +26,7 @@ EXERCISE = "exercise"
 @bp.route("/workbooks", methods=["GET"])
 def get_workbooks():
     try:
-        if is_admin():
+        if session[IS_ADMIN]:
             workbooks = db.session.execute(
                 db.select(Workbook)
             ).scalars().all()
@@ -46,27 +46,18 @@ def get_workbooks():
 
 
 @login_required
-@bp.route("/workbook/<string:user_role>/<int:workbook_id>", methods=["POST"])
-def get_workbook(user_role, workbook_id):
-    try:
-        role = UserRole(user_role)
-    except ValueError:
-        return badrequest_handler("Invalid user_role")
-
-    if role.value != session.get(USER_ROLE):
-        return conflict_handler("'user_role' does not match with current session user's role")
-
-    is_user_admin = is_admin()
-    workbook = fetch_workbook_with_exercises(workbook_id, is_user_admin)
+@bp.route("/workbook/<int:workbook_id>", methods=["POST"])
+def get_workbook(workbook_id: int):
+    workbook = fetch_workbook_with_exercises(workbook_id)
     if not workbook:
         return notfound_handler("Workbook not found")
-    response = format_workbook_response(workbook, is_user_admin)
+    response = format_workbook_response(workbook)
     return jsonify(response), 200
 
 
-def fetch_workbook_with_exercises(workbook_id: int, is_user_admin: bool = False):
+def fetch_workbook_with_exercises(workbook_id: int):
     workbook_exercises = db.select(Workbook).options(db.joinedload(Workbook.exercises))
-    if is_user_admin:
+    if session[IS_ADMIN]:
         query = workbook_exercises.filter_by(workbook_id=workbook_id)
     else:
         query = workbook_exercises.filter(
@@ -87,7 +78,7 @@ def fetch_answer_lines(answer_id: int):
     ).scalars().all()
 
 
-def format_workbook_response(workbook, exclude_feedback=False):
+def format_workbook_response(workbook):
     response = {
         WORKBOOK_NAME: workbook.workbook_name,
         RELEASE_DATE: workbook.workbook.release_date,
@@ -110,7 +101,7 @@ def format_workbook_response(workbook, exclude_feedback=False):
             EXERCISE_CONTENT: exercise.exercise_content,
             LINES: lines_data,
         }
-        if (not exclude_feedback) and answer:
+        if not session[IS_ADMIN] and answer:
             exercise_data[FEEDBACK] = answer.feedback
         response[EXERCISES].append(exercise_data)
 
@@ -126,13 +117,9 @@ EXERCISES = "exercises"
 
 
 @login_required
-@bp.route("/workbook/<string:user_role>/<int:workbook_id>/edit", methods=["POST"])
-def edit_workbook(user_role, workbook_id):
-    try:
-        role = UserRole(user_role)
-    except ValueError:
-        return badrequest_handler("Invalid UserRole")
-    if role.value != db.session[USER_ROLE] or db.session[USER_ROLE] != UserRole.ADMIN:
+@bp.route("/workbook/<int:workbook_id>/edit", methods=["POST"])
+def edit_workbook(workbook_id):
+    if not session[IS_ADMIN]:
         return unauthorized_handler("Only admin user can edit workbooks")
 
     data = request.get_json()
@@ -148,7 +135,7 @@ def edit_workbook(user_role, workbook_id):
 @login_required
 @bp.route("/workbook/new", methods=["POST"])
 def add_workbook():
-    if not is_admin():
+    if not session[IS_ADMIN]:
         return unauthorized_handler("Only admin user can add new workbooks")
     data = request.get_json()
     if not data:

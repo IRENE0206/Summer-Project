@@ -1,31 +1,52 @@
 "use client";
 import useAuth from "@/utils/useAuth";
-import React, {useState} from "react";
-import {Container, Navbar} from "react-bootstrap";
+import React, {createContext, useState} from "react";
+import {Alert, Container, Navbar} from "react-bootstrap";
 import useUserInfo from "@/utils/useUserInfo";
 import SideBar from "@/components/SideBar";
-import UserInfoContext from "@/utils/UserInfoContext";
 import Col from "react-bootstrap/Col";
 import OffCanvasContext from "@/utils/OffCanvasContext";
 import Row from "react-bootstrap/Row";
+import {UserInfoInterface} from "@/interfaces/Interfaces";
+
+export const UserInfoContext = createContext<UserInfoInterface | null>(null);
 
 export default function MainLayout({children}: {
     children: React.ReactNode;
 }) {
     const passAuth = useAuth();
-
     const {userInfo, error} = useUserInfo();
     console.log(userInfo);
     const [showOffCanvas, setShownOffCanvas] = useState<boolean>(true);
     const handleShowOffCanvas = () => {
         setShownOffCanvas(!showOffCanvas);
     };
-    if (!passAuth) {
-        return (<Container><p>You need to log in first</p></Container>);
-    } else if (!userInfo) {
-        return (<Container><p>Failed to fetch user information</p></Container>);
-    } else if (error) {
-        return (<Container><p>Error: {error.message}</p></Container>);
+    if (passAuth === null) {
+        console.log("Authenticating");
+        return (
+            <Alert variant={"info"}>Loading...</Alert>
+        );
+    } else if (!passAuth) {
+        console.error("Authentication failed");
+        return (
+            <Alert>
+                You need to login in first.
+            </Alert>
+        );
+    } else if (userInfo === null && error === null) {
+        console.log("Fetching user information...");
+        return (
+            <Alert variant={"info"}>
+                Fetching user information...
+            </Alert>
+        );
+    } else if (error !== null) {
+        console.error(error.message);
+        return (
+            <Alert variant={"danger"}>
+                {error.message}
+            </Alert>
+        );
     }
 
     return (
@@ -47,10 +68,11 @@ export default function MainLayout({children}: {
                     </header>
                 </Col>
             </Row>
-            <Row className={"w-100 mt-5 px-0 mx-0"}> {/* Added mt-5 to offset the content below the fixed navbar */}
+            <Row
+                className={"w-100 mt-5 px-0 mx-0"}> {/* Added mt-5 to offset the content below the fixed navbar */}
                 <UserInfoContext.Provider value={userInfo}>
                     {/* Sidebar */}
-                    <Col md={3} lg={2} className={"ms-0 me-3 p-0 h-100"}>
+                    <Col md={3} lg={2} className={"ms-0 me-5 p-0 h-100"}>
                         <aside
                             className={"position-fixed start-0 top-0 pt-5 h-100 my-0"}>
                             <OffCanvasContext.Provider value={{showOffCanvas, handleShowOffCanvas}}>
@@ -59,11 +81,13 @@ export default function MainLayout({children}: {
                         </aside>
                     </Col>
                     {/* Main Content */}
-                    <Col className={"p-0 h-100 ms-md-5"}>
+                    <Col className={"ps-md-5 h-100 ms-md-5"}>
                         <main className={"d-flex p-3"}>{children}</main>
                     </Col>
                 </UserInfoContext.Provider>
             </Row>
         </Container>
+
+
     );
 }
