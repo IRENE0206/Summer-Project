@@ -2,14 +2,13 @@
 import React, {useContext, useState} from "react";
 import QA from "@/components/QA";
 import {useRouter} from "next/navigation";
-import {Alert, Container, Form, Tab, Tabs} from "react-bootstrap";
+import {Alert, Container, Form} from "react-bootstrap";
 import Button from "react-bootstrap/Button";
 import Card from "react-bootstrap/Card";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import {Line, QAInterface} from "@/interfaces/Interfaces";
 import {UserInfoContext} from "@/app/(main)/layout";
-import {InlineMath} from "react-katex";
 
 
 export default function AddWorkbook() {
@@ -117,173 +116,104 @@ export default function AddWorkbook() {
     }
     return (
         <Container fluid className={"d-flex flex-column p-0 mx-3"}>
-            <Tabs
-                defaultActiveKey={"edit"}
-                justify
-                className={"p-0 m-0"}
-            >
-                <Tab
-                    eventKey={"edit"}
-                    title={"Edit"}
-                    className={"p-0 m-0"}
-                >
-                    <Form method="post" onSubmit={handleSubmit}>
-                        <Card border="primary" className="my-3 shadow-sm">
-                            <Card.Body>
-                                <Row>
-                                    <Col>
-                                        <Form.Group className={"shadow-sm"}>
-                                            <Form.FloatingLabel
-                                                label={"Workbook Name: "}
-                                            >
-                                                <Form.Control
-                                                    type={"text"}
-                                                    value={workbookName}
-                                                    onChange={(e) => setWorkbookName(e.target.value)}
-                                                />
-                                            </Form.FloatingLabel>
-                                        </Form.Group>
-                                    </Col>
-                                </Row>
-                                <Row>
-                                    <Col className={"pe-0"}>
-                                        <Form.Group className={"shadow-sm"}>
-                                            <Form.FloatingLabel
-                                                label={"Release Date: "}
-                                            >
-                                                <Form.Control
-                                                    type={"date"}
-                                                    value={releaseDate}
-                                                    onChange={(e) => setReleaseDate(e.target.value)}
-                                                />
-                                            </Form.FloatingLabel>
-                                        </Form.Group>
-                                    </Col>
-                                    <Col className={"ps-0"}>
-                                        <Form.Group className={"shadow-sm"}>
-                                            <Form.FloatingLabel
-                                                label={"Release Time: "}
-                                            >
-                                                <Form.Control
-                                                    type={"time"}
-                                                    value={releaseTime}
-                                                    onChange={(e) => setReleaseTime(e.target.value)}
-                                                />
-                                            </Form.FloatingLabel>
-                                        </Form.Group>
-                                    </Col>
-                                </Row>
-                            </Card.Body>
-                        </Card>
-                        {qaList.map((qa) => (
-                            <QA
-                                key={qa.id}
-                                index={qa.index}
-                                externalOnChange={(data) =>
-                                    handleQAChange(
-                                        qa.id,
-                                        qa.index,
-                                        data.number,
-                                        data.question,
-                                        data.answer
-                                    )
-                                }
-                                onDelete={() => handleDeleteQA(qa.id)}
-                                isDeleteDisabled={qaList.length === 1}
-                            />
-
-                        ))}
-                        <Row className={"my-3 align-items-center"}>
-                            <Col className={"text-start"}>
-                                <Button
-                                    variant="outline-success"
-                                    type="button"
-                                    onClick={handleAddQA}
-                                    size={"lg"}
-                                    className={"shadow-sm"}
-                                >
-                                    Add Q&A
-                                </Button>
-                            </Col>
-                            <Col className={"text-end"}>
-                                <Button
-                                    variant="outline-primary"
-                                    type="submit"
-                                    size={"lg"}
-                                    className={"shadow-sm"}
-                                >
-                                    Save All
-                                </Button>
-                            </Col>
-                        </Row>
-                    </Form>
-                </Tab>
-                <Tab
-                    eventKey={"preview"}
-                    title={"Preview"}>
-                    <Card border="primary" className="my-3 shadow-sm">
-                        <Card.Header className={"shadow-sm"}>
-                            Workbook Information
-                        </Card.Header>
+            <Row>
+                <Col>
+                    <Card className={"rounded-5 shadow-lg"}>
                         <Card.Body>
-                            <Card.Title>
-                                Workbook Name: {workbookName}
-                            </Card.Title>
-                            <Card.Text>
-                                Release Datetime: {releaseDate} {releaseTime}
-                            </Card.Text>
+                            <Form method={"post"} onSubmit={handleSubmit}>
+                                <Card border={"primary"} className={"my-3 shadow rounded-5"}>
+                                    <Card.Body>
+                                        <Row>
+                                            <Col>
+                                                <Form.Group className={"shadow-sm"}>
+                                                    <Form.FloatingLabel
+                                                        label={"Workbook Name: "}
+                                                    >
+                                                        <Form.Control
+                                                            type={"text"}
+                                                            value={workbookName}
+                                                            onChange={(e) => setWorkbookName(e.target.value)}
+                                                        />
+                                                    </Form.FloatingLabel>
+                                                </Form.Group>
+                                            </Col>
+                                        </Row>
+                                        <Row>
+                                            <Col className={"pe-0"}>
+                                                <Form.Group className={"shadow-sm"}>
+                                                    <Form.FloatingLabel
+                                                        label={"Release Date: "}
+                                                    >
+                                                        <Form.Control
+                                                            type={"date"}
+                                                            value={releaseDate}
+                                                            onChange={(e) => setReleaseDate(e.target.value)}
+                                                        />
+                                                    </Form.FloatingLabel>
+                                                </Form.Group>
+                                            </Col>
+                                            <Col className={"ps-0"}>
+                                                <Form.Group className={"shadow-sm"}>
+                                                    <Form.FloatingLabel
+                                                        label={"Release Time: "}
+                                                    >
+                                                        <Form.Control
+                                                            type={"time"}
+                                                            value={releaseTime}
+                                                            onChange={(e) => setReleaseTime(e.target.value)}
+                                                        />
+                                                    </Form.FloatingLabel>
+                                                </Form.Group>
+                                            </Col>
+                                        </Row>
+                                    </Card.Body>
+                                </Card>
+                                {qaList.map((qa) => (
+                                    <QA
+                                        key={qa.id}
+                                        index={qa.index}
+                                        externalOnChange={(data) =>
+                                            handleQAChange(
+                                                qa.id,
+                                                qa.index,
+                                                data.number,
+                                                data.question,
+                                                data.answerLines
+                                            )
+                                        }
+                                        onDelete={() => handleDeleteQA(qa.id)}
+                                        isDeleteDisabled={qaList.length === 1}
+                                    />
+
+                                ))}
+                                <Row className={"my-3 align-items-center"}>
+                                    <Col className={"text-start"}>
+                                        <Button
+                                            variant={"outline-success"}
+                                            type="button"
+                                            onClick={handleAddQA}
+                                            size={"lg"}
+                                            className={"shadow-sm rounded-5"}
+                                        >
+                                            Add Q&A
+                                        </Button>
+                                    </Col>
+                                    <Col className={"text-end"}>
+                                        <Button
+                                            variant={"outline-primary"}
+                                            type={"submit"}
+                                            size={"lg"}
+                                            className={"shadow-sm rounded-5"}
+                                        >
+                                            Save All
+                                        </Button>
+                                    </Col>
+                                </Row>
+                            </Form>
                         </Card.Body>
                     </Card>
-                    {qaList.map((qa) => (
-                        <Card
-                            key={qa.index}
-                            border={"success"}
-                            className={"shadow-sm my-3"}
-                        >
-                            <Card.Header className={"d-flex align-content-start shadow-sm"}>
-                                <Card.Text>{qa.number}</Card.Text>
-                            </Card.Header>
-                            <Card.Body className={"shadow-sm"}>
-                                <Card.Text>
-                                    Question:
-                                </Card.Text>
-                                <div className={"latex-preview"}>
-                                    <InlineMath math={qa.question}/>
-                                </div>
-                                <Card.Text>
-                                    Answer:
-                                </Card.Text>
-                                {
-                                    qa.answer.map(line => (
-                                        <Card.Text key={line.line_index}>
-                                            <span>{line.variable}</span>
-                                            <span>&arr</span>
-                                            <span>{line.rules}</span>
-                                        </Card.Text>
-
-                                    ))
-                                }
-                            </Card.Body>
-                            <Card.Footer className={"text-end shadow-sm"}>
-
-                            </Card.Footer>
-                        </Card>
-
-                    ))}
-                    <Row className={"my-3 align-items-center"}>
-                        <Col className={"text-end"}>
-                            <Button
-                                variant="outline-primary"
-                                type="submit"
-                                size={"lg"}
-                                className={"shadow-sm"}
-                            >
-                                Save All
-                            </Button>
-                        </Col>
-                    </Row>
-                </Tab>
-            </Tabs>
+                </Col>
+            </Row>
         </Container>
     );
 }

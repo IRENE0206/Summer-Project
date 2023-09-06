@@ -1,13 +1,13 @@
 "use client";
-import useAuth from "@/utils/useAuth";
 import React, {createContext, useState} from "react";
+import {UserInfoInterface} from "@/interfaces/Interfaces";
+import Row from "react-bootstrap/Row";
 import {Alert, Container, Navbar} from "react-bootstrap";
+import Col from "react-bootstrap/Col";
+import useAuth from "@/utils/useAuth";
 import useUserInfo from "@/utils/useUserInfo";
 import SideBar from "@/components/SideBar";
-import Col from "react-bootstrap/Col";
 import OffCanvasContext from "@/utils/OffCanvasContext";
-import Row from "react-bootstrap/Row";
-import {UserInfoInterface} from "@/interfaces/Interfaces";
 
 export const UserInfoContext = createContext<UserInfoInterface | null>(null);
 
@@ -18,6 +18,7 @@ export default function MainLayout({children}: {
     const {userInfo, error} = useUserInfo();
     console.log(userInfo);
     const [showOffCanvas, setShownOffCanvas] = useState<boolean>(true);
+
     const handleShowOffCanvas = () => {
         setShownOffCanvas(!showOffCanvas);
     };
@@ -30,7 +31,7 @@ export default function MainLayout({children}: {
         console.error("Authentication failed");
         return (
             <Alert>
-                You need to login in first.
+                You need to log in first.
             </Alert>
         );
     } else if (userInfo === null && error === null) {
@@ -68,10 +69,8 @@ export default function MainLayout({children}: {
                     </header>
                 </Col>
             </Row>
-            <Row
-                className={"w-100 mt-5 px-0 mx-0"}> {/* Added mt-5 to offset the content below the fixed navbar */}
+            <Row className={"w-100 mt-5 px-0 mx-0"}>
                 <UserInfoContext.Provider value={userInfo}>
-                    {/* Sidebar */}
                     <Col md={3} lg={2} className={"ms-0 me-5 p-0 h-100"}>
                         <aside
                             className={"position-fixed start-0 top-0 pt-5 h-100 my-0"}>
@@ -80,8 +79,8 @@ export default function MainLayout({children}: {
                             </OffCanvasContext.Provider>
                         </aside>
                     </Col>
-                    {/* Main Content */}
                     <Col className={"ps-md-5 h-100 ms-md-5"}>
+
                         <main className={"d-flex p-3"}>{children}</main>
                     </Col>
                 </UserInfoContext.Provider>

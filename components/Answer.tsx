@@ -5,7 +5,8 @@ import {Line} from "@/interfaces/Interfaces";
 import Button from "react-bootstrap/Button";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import {useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
+import Latex from "react-latex-next";
 
 export default function Answer({
     lines,
@@ -73,11 +74,30 @@ export default function Answer({
         ));
     };
 
+    const latexLines = lines.map((line) => {
+        if (line.variable && line.rules) {
+            const latexLine = `${line.variable} & \\rightarrow `;
+            const latexRules = line.rules.split("|").join(" \\mid ");
+            return latexLine + latexRules;
+        }
+        return "";
+    });
+
+    // Use align* environment for multiple lines in a single block
+    const latexString = `\\begin{align*} ${latexLines.join(" \\\\ ")} \\end{align*}`;
+
+
     return (
         <>
             <Form.Text muted className={"font-weight-bold"}>
                 Please mark the starting symbol.
             </Form.Text>
+            <Row>
+                <Col md={6}>
+                    {/* Display the entire grammar as a single Latex block */}
+                    <Latex>{`$$ ${latexString} $$`}</Latex>
+                </Col>
+            </Row>
             {lines.map((line: Line, index: number) => (
                 <InputGroup
                     key={line.line_index}
@@ -147,7 +167,7 @@ export default function Answer({
                         variant={"outline-success"}
                         type={"button"}
                         aria-label={"Add line"}
-                        className={"shadow-sm"}
+                        className={"shadow-sm rounded-5"}
                         onClick={handleAddLine}
                     >
                         Add new line

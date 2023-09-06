@@ -4,6 +4,8 @@ import {useRouter} from "next/navigation";
 import {FormEvent, useState} from "react";
 import CryptoJS from "crypto-js";
 import {SECRET_KEY, SESSION_IDENTIFIER} from "@/utils/constants";
+import Row from "react-bootstrap/Row";
+import Col from "react-bootstrap/Col";
 
 interface FormDataModel {
     user_name: string;
@@ -99,12 +101,8 @@ export default function Index() {
     };
 
     return (
-        <Container
-            className={"d-flex justify-content-center align-items-center vh-100 col-lg-5 col-md-3 py-3"}>
-            <ToastContainer
-                position={"middle-center"}
-                className={"d-flex"}
-            >
+        <Container fluid className={"p-5 d-grid justify-content-center align-items-center"}>
+            <ToastContainer position={"middle-center"} className={"d-flex"}>
                 <Toast
                     onClose={() => setShowToast(false)}
                     show={showToast}
@@ -119,123 +117,138 @@ export default function Index() {
                     <Toast.Body>{toastMessage}</Toast.Body>
                 </Toast>
             </ToastContainer>
-            <Container className={"d-flex justify-content-center align-items-center"}>
-                <Card
-                    border={"light"}
-                    className={"d-flex w-100 shadow-lg bg-primary-subtle rounded-5"}
-                >
-                    <Card.Header className={"bg-dark shadow text-white rounded-top-5"}>
-                        <Card.Title as={"h1"} className={"m-3 text-center"}>WEBSITE
-                            NAME {/* TODO: */}</Card.Title>
-                    </Card.Header>
-                    <Card.Body className={"m-3"}>
-                        <Tabs
-                            defaultActiveKey={"login"}
-                            variant={"tabs"}
-                            className={"mb-1"}
-                            justify
-                        >
-                            <Tab
-                                eventKey={"login"}
-                                title={"Login"}
-                                className={"p-3 shadow-lg bg-light-subtle rounded-bottom-5"}
+            <Row>
+                <Col>
+                    <Card
+                        border={"light"}
+                        className={"bg-success-subtle shadow-lg bg-primary-subtle rounded-5"}
+                    >
+
+                        <Card.Header className={"bg-dark shadow text-white rounded-top-5"}>
+                            <Card.Title as={"h1"} className={"m-3 text-center"}>
+                                WEBSITE NAME {/* TODO: */}
+                            </Card.Title>
+                        </Card.Header>
+
+                        <Card.Body className={"d-flex flex-column m-3"}>
+                            <Tabs
+                                className={"shadow-lg"}
+                                defaultActiveKey={"login"}
+                                variant={"tabs"}
+                                justify
                             >
-                                <Form method="post" onSubmit={handleLoginSubmit}>
-                                    <Form.Group className={"m-3"}>
-                                        <Form.FloatingLabel label={"Email address:"}>
+                                <Tab
+                                    eventKey={"login"}
+                                    title={"Login"}
+                                    className={"p-3 shadow-lg bg-light rounded-bottom-5"}
+                                >
+                                    <Form
+                                        method={"post"} onSubmit={handleLoginSubmit}
+                                        className={"d-flex flex-column"}
+                                    >
+                                        <Form.Group className={"m-3"}>
                                             <InputGroup>
-                                                <Form.Control
-                                                    id={LOGIN_USERNAME}
-                                                    name={LOGIN_USERNAME}
-                                                    type="search"
-                                                    autoComplete="username"
-                                                    required
-                                                />
+                                                <Form.FloatingLabel label={"Username:"}>
+                                                    <Form.Control
+                                                        id={LOGIN_USERNAME}
+                                                        name={LOGIN_USERNAME}
+                                                        type={"search"}
+                                                        autoComplete={"username"}
+                                                        required
+                                                    />
+                                                </Form.FloatingLabel>
                                                 <InputGroup.Text>@bristol.ac.uk</InputGroup.Text>
                                             </InputGroup>
-                                        </Form.FloatingLabel>
-                                    </Form.Group>
+                                        </Form.Group>
 
-                                    <Form.Group className={"m-3"}>
-                                        <Form.FloatingLabel label={"Password:"}>
-                                            <Form.Control
-                                                id={LOGIN_PASSWORD}
-                                                name={LOGIN_PASSWORD}
-                                                type={"password"}
-                                                autoComplete={"current-password"}
-                                                required
-                                            />
-                                        </Form.FloatingLabel>
-
-                                    </Form.Group>
-
-
-                                    <Button variant={"success"} size={"lg"} type={"submit"}
-                                        className={"m-3 rounded"}>
-                                        Sign In
-                                    </Button>
-                                </Form>
-                            </Tab>
-
-
-                            <Tab
-                                eventKey={"register"}
-                                title={"Register"}
-                                className={"p-3 shadow-lg bg-light-subtle rounded-bottom-5"}
-                            >
-                                <Form method="post" onSubmit={handleRegisterSubmit} className={"mb-3"}>
-                                    <Form.Group className={"m-3"}>
-                                        <Form.FloatingLabel label={"Email address:"}>
-                                            <InputGroup>
+                                        <Form.Group className={"m-3"}>
+                                            <Form.FloatingLabel label={"Password:"}>
                                                 <Form.Control
-                                                    id={REGISTER_USERNAME}
-                                                    name={REGISTER_USERNAME}
-                                                    type={"search"}
-                                                    autoComplete={"username"}
+                                                    id={LOGIN_PASSWORD}
+                                                    name={LOGIN_PASSWORD}
+                                                    type={"password"}
+                                                    autoComplete={"current-password"}
                                                     required
                                                 />
+                                            </Form.FloatingLabel>
+                                        </Form.Group>
+
+                                        <Button
+                                            variant={"success"}
+                                            size={"lg"}
+                                            type={"submit"}
+                                            className={"m-3 rounded shadow"}
+                                        >
+                                            Sign In
+                                        </Button>
+
+                                    </Form>
+                                </Tab>
+
+                                <Tab
+                                    eventKey={"register"}
+                                    title={"Register"}
+                                    className={"p-3 shadow-lg bg-light rounded-bottom-5"}
+                                >
+
+                                    <Form
+                                        method={"post"} onSubmit={handleRegisterSubmit}
+                                        className={"d-flex flex-column"}
+                                    >
+
+                                        <Form.Group className={"m-3"}>
+                                            <InputGroup>
+                                                <Form.FloatingLabel label={"Username:"}>
+                                                    <Form.Control
+                                                        id={REGISTER_USERNAME}
+                                                        name={REGISTER_USERNAME}
+                                                        type={"search"}
+                                                        autoComplete={"username"}
+                                                        required
+                                                    />
+                                                </Form.FloatingLabel>
                                                 <InputGroup.Text>@bristol.ac.uk</InputGroup.Text>
                                             </InputGroup>
-                                        </Form.FloatingLabel>
+                                        </Form.Group>
 
-                                    </Form.Group>
+                                        <Form.Group className={"m-3"}>
+                                            <Form.FloatingLabel label={"Password:"}>
+                                                <Form.Control
+                                                    id={FIRST_PASSWORD}
+                                                    name={FIRST_PASSWORD}
+                                                    type={"password"}
+                                                    autoComplete={"current-password"}
+                                                    required
+                                                />
+                                            </Form.FloatingLabel>
+                                        </Form.Group>
 
-                                    <Form.Group className={"m-3"}>
-                                        <Form.FloatingLabel label={"Password:"}>
-                                            <Form.Control
-                                                id={FIRST_PASSWORD}
-                                                name={FIRST_PASSWORD}
-                                                type={"password"}
-                                                autoComplete={"current-password"}
-                                                required
-                                            />
-                                        </Form.FloatingLabel>
-                                    </Form.Group>
-                                    <Form.Group className={"m-3"}>
-                                        <Form.FloatingLabel label={"Confirm Password:"}>
-                                            <Form.Control
-                                                id={REPEAT_PASSWORD}
-                                                name={REPEAT_PASSWORD}
-                                                type={"password"}
-                                                autoComplete={"current-password"}
-                                                required
-                                            />
-                                        </Form.FloatingLabel>
+                                        <Form.Group className={"m-3"}>
+                                            <Form.FloatingLabel label={"Confirm Password:"}>
+                                                <Form.Control
+                                                    id={REPEAT_PASSWORD}
+                                                    name={REPEAT_PASSWORD}
+                                                    type={"password"}
+                                                    autoComplete={"current-password"}
+                                                    required
+                                                />
+                                            </Form.FloatingLabel>
+                                        </Form.Group>
 
-                                    </Form.Group>
+                                        <Button variant={"success"}
+                                            type={"submit"} size={"lg"}
+                                            className={"m-3 shadow-sm rounded"}
+                                        >
+                                            Register
+                                        </Button>
 
-                                    <Button variant={"success"}
-                                        type={"submit"} size={"lg"}
-                                        className={"m-3 shadow-sm rounded"}>
-                                        Register
-                                    </Button>
-
-                                </Form>
-                            </Tab>
-                        </Tabs>
-                    </Card.Body>
-                </Card>
-            </Container>
+                                    </Form>
+                                </Tab>
+                            </Tabs>
+                        </Card.Body>
+                    </Card>
+                </Col>
+            </Row>
         </Container>
     );
 }

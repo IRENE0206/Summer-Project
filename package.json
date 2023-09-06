@@ -19,19 +19,16 @@
     "concurrently": "latest",
     "crypto-js": "latest",
     "eslint-config-next": "latest",
-    "katex": "^0.16.8",
     "next": "latest",
     "react-bootstrap": "latest",
     "react-dom": "latest",
-    "react-katex": "^3.0.1",
+    "react-latex-next": "latest",
     "typescript": "latest"
   },
   "devDependencies": {
-    "@types/react-katex": "^3.0.0",
     "@typescript-eslint/eslint-plugin": "latest",
     "@typescript-eslint/parser": "latest",
     "eslint": "latest",
-    "eslint-plugin-react": "latest",
-    "sass": "latest"
+    "eslint-plugin-react": "latest"
   }
 }

@@ -7,7 +7,7 @@ import {Line} from "@/interfaces/Interfaces";
 import Card from "react-bootstrap/Card";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import {InlineMath} from "react-katex";
+import Latex from "react-latex-next";
 
 export default function QA({
     index,
@@ -21,13 +21,13 @@ export default function QA({
     externalOnChange: (data: {
         number: string,
         question: string,
-        answer: Line[]
+        answerLines: Line[]
     }) => void;
 }) {
     const [manuallyEdited, setManuallyEdited] = useState(false);
     const [number, setNumber] = useState<string>(index.toString());
     const [question, setQuestion] = useState<string>("");
-    const [answer, setAnswer] = useState<Line[]>(
+    const [answerLines, setAnswerLines] = useState<Line[]>(
         [{line_index: 0, variable: "", rules: ""}]
     );
 
@@ -41,12 +41,12 @@ export default function QA({
         externalOnChange({
             number,
             question,
-            answer,
+            answerLines,
         });
     }, []);
 
     return (
-        <Card border={"success"} className={"shadow-sm my-3"}>
+        <Card border={"success"} className={"shadow-sm my-3 rounded-5"}>
             <Card.Header className={"d-flex flex-column align-items-start shadow-sm"}>
                 <Form.Group className={"align-items-center shadow-sm"}>
                     <Form.FloatingLabel label={"Exercise Number:"}>
@@ -66,7 +66,7 @@ export default function QA({
                     <Col>
                         <Form.Group className={"my-3 align-items-center shadow-sm"}>
                             <div className={"latex-preview"}>
-                                <InlineMath math={question}/>
+                                <Latex>{`${question}`}</Latex>
                             </div>
                             <Form.FloatingLabel label={"Question:"}>
                                 <Form.Control
@@ -86,7 +86,7 @@ export default function QA({
                             <Form.Label>
                                 Answer:
                             </Form.Label>
-                            <Answer lines={answer} onChange={setAnswer}/>
+                            <Answer lines={answerLines} onChange={setAnswerLines}/>
                         </Form.Group>
                     </Col>
                 </Row>
@@ -96,7 +96,7 @@ export default function QA({
                     type={"button"}
                     value={"Delete Exercise"}
                     variant={"outline-danger"}
-                    className={"shadow-sm"}
+                    className={"shadow-sm rounded-5"}
                     onClick={onDelete}
                     disabled={isDeleteDisabled}
                 >
