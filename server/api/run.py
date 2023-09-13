@@ -9,7 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from .auth import login_required, USER_ID, IS_ADMIN
 from .db import db, Workbook, Exercise, Answer, Line
 from .util import (
-    succeed, unauthorized_handler, badrequest_handler, internal_server_error_handler, notfound_handler
+    unauthorized_handler, badrequest_handler, internal_server_error_handler, notfound_handler
 )
 
 bp = Blueprint("app", __name__, url_prefix="/api")
@@ -18,7 +18,6 @@ CORS(bp)
 WORKBOOK_ID = "workbook_id"
 WORKBOOK_NAME = "workbook_name"
 RELEASE_DATE = "release_date"
-LAST_EDIT = "last_edit"
 EXERCISE = "exercise"
 
 
@@ -32,21 +31,20 @@ def get_workbooks():
             ).scalars().all()
         else:
             workbooks = db.session.execute(
-                db.select(Workbook).filter(Workbook.release_date < datetime.now())
+                db.select(Workbook).filter(Workbook.release_date < datetime.utcnow())
             ).scalars().all()
 
         return jsonify([{
             WORKBOOK_ID: workbook.workbook_id,
             WORKBOOK_NAME: workbook.workbook_name,
             RELEASE_DATE: workbook.release_date,
-            LAST_EDIT: workbook.last_edit
         } for workbook in workbooks]), 200
     except SQLAlchemyError:
-        return internal_server_error_handler()
+        return internal_server_error_handler("An error occurred when fetching workbooks data")
 
 
 @login_required
-@bp.route("/workbook/<int:workbook_id>", methods=["POST"])
+@bp.route("/workbooks/<int:workbook_id>", methods=["GET"])
 def get_workbook(workbook_id: int):
     workbook = fetch_workbook_with_exercises(workbook_id)
     if not workbook:
@@ -56,13 +54,9 @@ def get_workbook(workbook_id: int):
 
 
 def fetch_workbook_with_exercises(workbook_id: int):
-    workbook_exercises = db.select(Workbook).options(db.joinedload(Workbook.exercises))
-    if session[IS_ADMIN]:
-        query = workbook_exercises.filter_by(workbook_id=workbook_id)
-    else:
-        query = workbook_exercises.filter(
-            db.and_(Workbook.workbook_id == workbook_id, Workbook.release_date < datetime.now())
-        )
+    query = db.select(Workbook).filter_by(workbook_id=workbook_id)
+    if not session[IS_ADMIN]:
+        query = query.filter(Workbook.release_date < datetime.utcnow())
     return db.session.execute(query).scalar_one_or_none()
 
 
@@ -78,14 +72,14 @@ def fetch_answer_lines(answer_id: int):
     ).scalars().all()
 
 
-def format_workbook_response(workbook):
+def format_workbook_response(workbook: Workbook):
     response = {
         WORKBOOK_NAME: workbook.workbook_name,
-        RELEASE_DATE: workbook.workbook.release_date,
-        LAST_EDIT: workbook.last_edit,
+        RELEASE_DATE: workbook.release_date,
         EXERCISES: [],
     }
-    for exercise in workbook.exercises:
+    sorted_exercises = sorted(workbook.exercises, key=lambda x: x.exercise_index)
+    for exercise in sorted_exercises:
         answer = fetch_user_answer(exercise.exercise_id)
         lines_data = []
         if answer:
@@ -97,6 +91,7 @@ def format_workbook_response(workbook):
 
         exercise_data = {
             EXERCISE_ID: exercise.exercise_id,
+            EXERCISE_INDEX: exercise.exercise_index,
             EXERCISE_NUMBER: exercise.exercise_number,
             EXERCISE_CONTENT: exercise.exercise_content,
             LINES: lines_data,
@@ -109,6 +104,7 @@ def format_workbook_response(workbook):
 
 
 EXERCISE_ID = "exercise_id"
+EXERCISE_INDEX = "exercise_index"
 EXERCISE_NUMBER = "exercise_number"
 EXERCISE_CONTENT = "exercise_content"
 LINES = "lines"
@@ -117,7 +113,7 @@ EXERCISES = "exercises"
 
 
 @login_required
-@bp.route("/workbook/<int:workbook_id>/edit", methods=["POST"])
+@bp.route("/workbooks/<int:workbook_id>/edit", methods=["POST"])
 def edit_workbook(workbook_id):
     if not session[IS_ADMIN]:
         return unauthorized_handler("Only admin user can edit workbooks")
@@ -133,7 +129,7 @@ def edit_workbook(workbook_id):
 
 
 @login_required
-@bp.route("/workbook/new", methods=["POST"])
+@bp.route("/workbooks/new", methods=["POST"])
 def add_workbook():
     if not session[IS_ADMIN]:
         return unauthorized_handler("Only admin user can add new workbooks")
@@ -146,24 +142,24 @@ def add_workbook():
         workbook = create_workbook(data)
         db.session.add(workbook)
         db.session.flush()
-        q_and_a_s = data.get(EXERCISES, [])
-        for q_and_a in q_and_a_s:
-            validate_exercise_data(q_and_a)
-            exercise = create_exercise(q_and_a, workbook.workbook_id)
+        exercises_data = data.get(EXERCISES, [])
+        for exercise_data in exercises_data:
+            validate_exercise_data(exercise_data)
+            exercise = create_exercise(exercise_data, workbook.workbook_id)
             db.session.add(exercise)
             db.session.flush()
             # Storing answers for each exercise to the database
             answer = create_answer(exercise.exercise_id)
             db.session.add(answer)
             db.session.flush()
-            for line_data in q_and_a[ANSWER]:
+            for line_data in exercise_data[ANSWER]:
                 validate_line_data(line_data)
                 line = create_line(line_data, exercise.exercise_id)
                 if line:
                     db.session.add(line)
                     db.session.flush()
         db.session.commit()
-        return succeed("Created new workbooks successfully")
+        return jsonify({WORKBOOK_ID: workbook.workbook_id}), 200
     except ValueError as ve:
         db.session.rollback()
         return badrequest_handler(f"Validation Error: {ve}")
@@ -173,13 +169,16 @@ def add_workbook():
 
 
 def create_workbook(workbook_data) -> Workbook:
-    # Convert input string to datetime object; assuming format "YYYY-MM-DDTHH:MM"
-    release_date = datetime.strptime(workbook_data[RELEASE_DATE], "%Y-%m-%dT%H:%M")
-    return Workbook(workbook_name=workbook_data[WORKBOOK_NAME], release_date=release_date, last_edit=datetime.now())
+    release_date = datetime.strptime(workbook_data[RELEASE_DATE], "%Y-%m-%dT%H:%M:%S")
+    return Workbook(workbook_name=workbook_data[WORKBOOK_NAME], release_date=release_date)
+
+
+INDEX = "index"
 
 
 def create_exercise(exercise_data, workbook_id: int) -> Exercise:
     return Exercise(exercise_number=exercise_data[NUMBER].strip(),
+                    exercise_index=exercise_data[INDEX],
                     exercise_content=exercise_data[QUESTION].strip(),
                     workbook_id=workbook_id)
 

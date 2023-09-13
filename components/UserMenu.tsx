@@ -1,76 +1,73 @@
 "use client";
-import {Alert, Container, Dropdown, Nav, Toast} from "react-bootstrap";
 import React, {useContext, useState} from "react";
+import {Alert, Dropdown, Toast, ToastContainer} from "react-bootstrap";
+import Link from "next/link";
 import {SESSION_IDENTIFIER} from "@/utils/constants";
-import {UserInfoContext} from "@/app/(main)/layout";
+import UserInfoContext from "@/utils/UserInfoContext";
+import {fetchAPI} from "@/utils/fetchAPI";
+
 
 export default function UserMenu() {
     const userInfo = useContext(UserInfoContext);
-    if (!userInfo) {
-        return (
-            <Container className={"d-flex flex-column justify-content-end"}>
-                <Alert variant="danger">
-                    Failed to fetch user information. Please try again.
-                </Alert>
-            </Container>
-        );
-    }
     const [showToast, setShowToast] = useState(false);
     const [toastMessage, setToastMessage] = useState("");
 
-    async function onClickHandler() {
-        localStorage.removeItem(SESSION_IDENTIFIER);
-        const api = "/api/logout";
-        const res = await fetch(api, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-        });
-        if (res.ok) {
-            console.log("Log out successful");
-        } else {
-            const data = await res.json();
-            console.error("Log out failed", data);
-            setShowToast(true);
-            setToastMessage(data.message);
-        }
+    if (userInfo === null) {
+        return (
+            <Alert variant={"danger"}>
+                Failed to get user information.
+            </Alert>
+        );
     }
 
+    const onClickHandler = async () => {
+        localStorage.removeItem(SESSION_IDENTIFIER);
+        const api = "/api/logout";
+        const res = await fetchAPI(api, {method: "POST"});
+        if (res.success) {
+            console.log("Log out successful");
+        } else {
+            setShowToast(true);
+            setToastMessage(res.errorMessage || "An unexpected error occurred.");
+        }
+    };
+
     return (
-        <Nav.Item className={"px-3"}>
-            <Dropdown
-                className={"w-100"}
-                data-bs-theme={"dark"}
-                drop={"up-centered"}
-                align={"start"}
-            >
-                <Dropdown.Toggle
-                    variant={"success"}
-                    id="user-menu-dropdown"
-                    size={"lg"}
-                    className={"shadow-sm w-100 text-center"}
+        <Dropdown
+            className={"d-flex flex-column justify-content-center align-items-center w-100 shadow-sm rounded-5"}
+            data-bs-theme={"dark"}
+            drop={"up-centered"}
+            align={"start"}
+        >
+            <ToastContainer position={"middle-center"}>
+                <Toast
+                    onClose={() => setShowToast(false)}
+                    show={showToast}
+                    className={"rounded-5 bottom end"}
+                    bg={"warning"}
                 >
-                    <span>{userInfo.user_name}</span>
-                </Dropdown.Toggle>
-                <Dropdown.Menu align={"start"} className={"w-100"}>
-                    <Dropdown.Item as={"button"} href="/" onClick={onClickHandler}>
+                    <Toast.Header closeVariant={"white"}>
+                        <strong className={"me-auto"}>Error</strong>
+                    </Toast.Header>
+                    <Toast.Body>{toastMessage}</Toast.Body>
+                </Toast>
+            </ToastContainer>
+
+            <Dropdown.Toggle
+                variant={"success"}
+                id={"user-menu-dropdown"}
+                size={"lg"}
+                className={"rounded-5 shadow-sm w-100 text-center"}
+            >
+                <span>{userInfo.user_name}</span>
+            </Dropdown.Toggle>
+            <Dropdown.Menu align={"start"} className={"w-100 text-center"}>
+                <Link href="/">
+                    <Dropdown.Item as={"button"} onClick={onClickHandler}>
                         Sign out
                     </Dropdown.Item>
-                </Dropdown.Menu>
-            </Dropdown>
-            <Toast
-                onClose={() => setShowToast(false)}
-                show={showToast}
-                className={"bottom end w-100"}
-                autohide
-            >
-                <Toast.Header>
-                    <strong className="me-auto">Error</strong>
-                </Toast.Header>
-                <Toast.Body>{toastMessage}</Toast.Body>
-            </Toast>
-        </Nav.Item>
-
+                </Link>
+            </Dropdown.Menu>
+        </Dropdown>
     );
 }

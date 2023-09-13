@@ -1,4 +1,3 @@
-from datetime import datetime
 from enum import Enum
 
 from flask_sqlalchemy import SQLAlchemy
@@ -33,7 +32,6 @@ class Workbook(db.Model):
     workbook_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     workbook_name = db.Column(db.String, unique=True, nullable=False)
     release_date = db.Column(db.DateTime)
-    workbook_last_edit = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
     exercises = db.relationship(EXERCISE, back_populates="workbook", lazy="dynamic")
@@ -41,10 +39,10 @@ class Workbook(db.Model):
 
 class Exercise(db.Model):
     exercise_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    exercise_index = db.Column(db.Integer, nullable=False)
     exercise_number = db.Column(db.String, nullable=False)
     exercise_content = db.Column(db.String, nullable=False)
     workbook_id = db.Column(db.Integer, db.ForeignKey("workbook.workbook_id"), nullable=False)
-    exercise_last_edit = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     workbook = db.relationship(WORKBOOK, back_populates="exercises")
@@ -57,7 +55,6 @@ class Answer(db.Model):
     feedback = db.Column(db.String, nullable=False)
     exercise_id = db.Column(db.Integer, db.ForeignKey("exercise.exercise_id"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("user.user_id"), nullable=False)
-    answer_last_edit = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     user = db.relationship(USER, back_populates="answers")

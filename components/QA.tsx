@@ -1,19 +1,21 @@
-import {useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 import Answer from "./Answer";
 import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/Button";
 
-import {Line} from "@/interfaces/Interfaces";
+import {ExerciseDataInterface, Line} from "@/interfaces/Interfaces";
 import Card from "react-bootstrap/Card";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Latex from "react-latex-next";
+import {Container} from "react-bootstrap";
 
 export default function QA({
     index,
     onDelete,
     isDeleteDisabled,
     externalOnChange,
+    qa,
 }: {
     index: number;
     onDelete: () => void;
@@ -23,12 +25,14 @@ export default function QA({
         question: string,
         answerLines: Line[]
     }) => void;
+    qa?: ExerciseDataInterface;
 }) {
     const [manuallyEdited, setManuallyEdited] = useState(false);
-    const [number, setNumber] = useState<string>(index.toString());
-    const [question, setQuestion] = useState<string>("");
+    const [number, setNumber] = useState<string>(qa?.exercise_number || index.toString());
+    const [question, setQuestion] = useState<string>(qa?.exercise_content || "");
     const [answerLines, setAnswerLines] = useState<Line[]>(
-        [{line_index: 0, variable: "", rules: ""}]
+        qa ? (qa.lines)
+            : ([{line_index: 0, variable: "", rules: ""}])
     );
 
     useEffect(() => {
@@ -43,14 +47,17 @@ export default function QA({
             question,
             answerLines,
         });
-    }, []);
+    }, [number, question, answerLines]);
+
 
     return (
-        <Card border={"success"} className={"shadow-sm my-3 rounded-5"}>
-            <Card.Header className={"d-flex flex-column align-items-start shadow-sm"}>
-                <Form.Group className={"align-items-center shadow-sm"}>
+        <Card border={"success"} className={"shadow my-3 rounded-5"}>
+
+            <Card.Header className={"d-flex align-items-start rounded-5 shadow-sm"}>
+                <Form.Group>
                     <Form.FloatingLabel label={"Exercise Number:"}>
                         <Form.Control
+                            className={"d-flex border-secondary-subtle shadow"}
                             value={number}
                             name={`index${number}`}
                             onChange={(e) => {
@@ -61,46 +68,60 @@ export default function QA({
                     </Form.FloatingLabel>
                 </Form.Group>
             </Card.Header>
-            <Card.Body className={"d-flex flex-column shadow-sm"}>
-                <Row className={"border-bottom border-secondary-subtle pb-3"}>
+
+            <Card.Body className={"d-grid"}>
+                <Row>
                     <Col>
-                        <Form.Group className={"my-3 align-items-center shadow-sm"}>
-                            <div className={"latex-preview"}>
-                                <Latex>{`${question}`}</Latex>
-                            </div>
-                            <Form.FloatingLabel label={"Question:"}>
-                                <Form.Control
-                                    plaintext
-                                    className={"h-auto"}
-                                    value={question}
-                                    name={`question${number}`}
-                                    onChange={(e) => setQuestion(e.target.value)}
-                                />
-                            </Form.FloatingLabel>
-                        </Form.Group>
+                        <Container fluid className={"d-grid px-0 mx-0 shadow rounded"}>
+                            <Row>
+                                <Col>
+                                    <Form.Group>
+                                        <Form.FloatingLabel label={"Question Preview:"}>
+                                            <Form.Control as={Container}
+                                                className={"rounded-bottom-0 h-auto bg-secondary-subtle"}>
+                                                <Latex>{`${question}`}</Latex>
+                                            </Form.Control>
+                                        </Form.FloatingLabel>
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+
+                            <Row>
+                                <Col>
+                                    <Form.Group>
+                                        <Form.FloatingLabel label={"Question Input:"}>
+                                            <Form.Control
+                                                as={"textarea"}
+                                                className={"h-auto border-secondary-subtle shadow"}
+                                                value={question}
+                                                name={`question${number}`}
+                                                onChange={(e) => setQuestion(e.target.value)}
+                                            />
+                                        </Form.FloatingLabel>
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+                        </Container>
                     </Col>
                 </Row>
+
                 <Row className={"pt-3"}>
                     <Col>
-                        <Form.Group className={"my-3"}>
-                            <Form.Label>
-                                Answer:
-                            </Form.Label>
-                            <Answer lines={answerLines} onChange={setAnswerLines}/>
-                        </Form.Group>
+                        <Answer answerLines={answerLines} onChange={setAnswerLines}/>
                     </Col>
                 </Row>
             </Card.Body>
-            <Card.Footer className={"text-end shadow-sm"}>
+
+            <Card.Footer className={"text-end rounded-5 shadow-sm"}>
                 <Button
                     type={"button"}
                     value={"Delete Exercise"}
                     variant={"outline-danger"}
-                    className={"shadow-sm rounded-5"}
+                    className={"shadow rounded-5"}
                     onClick={onDelete}
                     disabled={isDeleteDisabled}
                 >
-                    Delete
+                    Delete Exercise
                 </Button>
             </Card.Footer>
         </Card>

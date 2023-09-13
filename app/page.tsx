@@ -1,11 +1,13 @@
 "use client";
-import {Button, Card, Container, Form, InputGroup, Tab, Tabs, Toast, ToastContainer} from "react-bootstrap";
-import {useRouter} from "next/navigation";
+
 import {FormEvent, useState} from "react";
+import {useRouter} from "next/navigation";
+
+import {Button, Card, Col, Container, Form, InputGroup, Row, Tab, Tabs, Toast, ToastContainer} from "react-bootstrap";
+
 import CryptoJS from "crypto-js";
 import {SECRET_KEY, SESSION_IDENTIFIER} from "@/utils/constants";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
+
 
 interface FormDataModel {
     user_name: string;
@@ -102,21 +104,6 @@ export default function Index() {
 
     return (
         <Container fluid className={"p-5 d-grid justify-content-center align-items-center"}>
-            <ToastContainer position={"middle-center"} className={"d-flex"}>
-                <Toast
-                    onClose={() => setShowToast(false)}
-                    show={showToast}
-                    bg={"danger"}
-                    autohide
-                >
-                    <Toast.Header
-                        closeVariant={"white"}
-                    >
-                        <strong className="me-auto">Error</strong>
-                    </Toast.Header>
-                    <Toast.Body>{toastMessage}</Toast.Body>
-                </Toast>
-            </ToastContainer>
             <Row>
                 <Col>
                     <Card
@@ -131,6 +118,19 @@ export default function Index() {
                         </Card.Header>
 
                         <Card.Body className={"d-flex flex-column m-3"}>
+                            <ToastContainer position={"middle-center"}>
+                                <Toast
+                                    onClose={() => setShowToast(false)}
+                                    show={showToast}
+                                    bg={"warning"}
+                                >
+                                    <Toast.Header>
+                                        <strong className="me-auto">Error</strong>
+                                    </Toast.Header>
+                                    <Toast.Body>{toastMessage}</Toast.Body>
+                                </Toast>
+                            </ToastContainer>
+
                             <Tabs
                                 className={"shadow-lg"}
                                 defaultActiveKey={"login"}

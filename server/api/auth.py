@@ -106,7 +106,7 @@ def login_required(f):
 
 
 @login_required
-@bp.route("/user", methods=["POST"])
+@bp.route("/user", methods=["GET"])
 def get_user():
     if USER_ID in session and USER_NAME in session and IS_ADMIN in session:
         user_data = {

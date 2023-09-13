@@ -1,8 +1,10 @@
-import "bootstrap/dist/css/bootstrap.css";
-import {WorkbookInterface} from "@/interfaces/Interfaces";
+"use client";
 import {useEffect, useState} from "react";
-import {Alert, Nav} from "react-bootstrap";
-import Button from "react-bootstrap/Button";
+import {Alert, Button, Nav} from "react-bootstrap";
+import {WorkbookInterface} from "@/interfaces/Interfaces";
+import CenteredSpinner from "@/components/CenteredSpinner";
+import {fetchAPI} from "@/utils/fetchAPI";
+
 
 export default function WorkbooksNavBar() {
     const api = "/api/workbooks";
@@ -13,24 +15,12 @@ export default function WorkbooksNavBar() {
             return;
         }
         const fetchWorkbooks = async () => {
-            const response = await fetch(api, {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-            });
+            const res = await fetchAPI<null, WorkbookInterface[]>(api, {method: "GET"});
 
-            const data = await response.json();
-            if (!response.ok) {
-                setErrorMsg(data.message);
-                return;
-            }
-
-            // Check if the data is an array and has content
-            if (data.length > 0) {
-                setWorkbooks(data);
+            if (res.success) {
+                setWorkbooks(res.data || []);
             } else {
-                setWorkbooks([]);  // Set an empty array if no workbooks are available
+                setErrorMsg(res.errorMessage || "An unexpected error occurred");
             }
         };
 
@@ -39,41 +29,50 @@ export default function WorkbooksNavBar() {
 
     if (errorMsg !== null) {
         return (
-            <Nav.Item className={"w-100 text-center px-3"}>
-                <Alert variant={"danger"} className={"text-center"}> {/* Used Alert for better error visibility */}
+            <Nav.Item className={"w-100 p-0 m-0 text-center"}>
+                <Alert variant={"danger"}
+                    className={"rounded-5 text-center shadow-sm"}
+                > {/* Used Alert for better error visibility */}
                     Error loading workbooks: {errorMsg}
                 </Alert>
             </Nav.Item>
         );
     } else if (workbooks === null) {
         return (
-            <Nav.Item className={"w-100 text-center px-3"}>
-                <Alert variant={"info"} className={"text-center shadow-sm"}>
-                    Loading workbooks...
-                </Alert>
-            </Nav.Item>
+            <CenteredSpinner/>
         );
     } else if (workbooks.length === 0) {
         return (
-            <Nav.Item className={"w-100 text-center px-3"}>
-                <Alert variant={"info"} className={"text-center shadow-sm"}>
+            <Nav.Item className={"w-100 p-0 m-0 text-center"}>
+                <Alert variant={"info"} className={"rounded-5 text-center shadow-sm"}>
                     There is no workbook available yet.
                 </Alert>
             </Nav.Item>
         );
     }
     return (
-        workbooks.map((workbook) => (
-            <Nav.Item key={workbook["workbook_id"]} className={"w-100 text-center"}>
-                <Button
-                    href={`/workbooks/${workbook["workbook_id"]}`}
-                    variant="outline-primary"
-                    type="button"
-                    className={"px-3 text-center shadow-sm"}
-                >
-                    {workbook["workbook_name"]}
-                </Button>
-            </Nav.Item>
-        ))
+        <Nav
+            variant={"pills"}
+            navbarScroll={true}
+            className={"w-100 h-100 p-0 m-0 d-flex flex-column"}
+            justify
+        >
+            {
+                workbooks.map((workbook) => (
+                    <Nav.Item key={workbook["workbook_id"]} className={"w-100 p-0 m-0 text-center"}>
+                        <Button
+                            href={`/workbooks/${workbook["workbook_id"]}`}
+                            variant={"outline-primary"}
+                            type={"button"}
+                            size={"lg"}
+                            className={"w-100 rounded-5 text-center shadow-sm"}
+                        >
+                            {workbook["workbook_name"]}
+                        </Button>
+                    </Nav.Item>
+                ))
+            }
+        </Nav>
+
     );
 }
