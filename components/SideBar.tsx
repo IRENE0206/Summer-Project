@@ -20,7 +20,7 @@ export default function SideBar() {
             </Container>
         );
     }
-    const is_admin = userInfo.is_admin;
+    const is_admin = userInfo?.is_admin || false;
     return (
         <Offcanvas
             backdrop={"static"}

@@ -1,4 +1,4 @@
-import {useEffect, useState} from "react";
+import {useState} from "react";
 import {Button, Col, Container, Form, InputGroup, Row} from "react-bootstrap";
 import Latex from "react-latex-next";
 import {Line} from "@/interfaces/Interfaces";
@@ -8,7 +8,7 @@ export default function Answer({
     onChange,
 }: {
     answerLines: Line[];
-    onChange: (newAnswer: Line[]) => void
+    onChange: (newAnswer: Line[]) => void;
 }) {
     const [startingSymbolIndex, setStartingSymbolIndex] = useState<number>(0);
     const [uniqueName] = useState(() => `startingSymbol_${Date.now()}`);
@@ -20,25 +20,23 @@ export default function Answer({
         }));
     };
 
-    useEffect(() => {
-        // Reset to the first line as the default
-        setStartingSymbolIndex(0);
-    }, [answerLines]);
-
     const reorderLines = (newLines: Line[]) => {
         const reordered: Line[] = [
             newLines[startingSymbolIndex],
             ...newLines.slice(0, startingSymbolIndex),
-            ...newLines.slice(startingSymbolIndex + 1)
+            ...newLines.slice(startingSymbolIndex + 1),
         ];
         onChange(updateLineIndexes(reordered));
     };
 
-
     const handleAddLine = () => {
-        const newLines = [...answerLines, {line_index: answerLines.length, variable: "", rules: ""}];
+        const newLines = [
+            ...answerLines,
+            {line_index: answerLines.length, variable: "", rules: ""},
+        ];
         onChange(updateLineIndexes(newLines));
     };
+
     const handleDeleteLine = (line_index: number) => {
         if (answerLines.length <= 1) {
             return;
@@ -53,15 +51,17 @@ export default function Answer({
     };
 
     const handleChangeLineVariable = (line_index: number, variable: string) => {
-        onChange(answerLines.map((line) =>
+        const updatedLines = answerLines.map((line) =>
             line.line_index === line_index ? {...line, variable} : line
-        ));
+        );
+        onChange([...updatedLines]); // Ensure immutability by spreading into a new array
     };
 
     const handleChangeLineRules = (line_index: number, rules: string) => {
-        onChange(answerLines.map((line) =>
+        const updatedLines = answerLines.map((line) =>
             line.line_index === line_index ? {...line, rules} : line
-        ));
+        );
+        onChange([...updatedLines]); // Ensure immutability by spreading into a new array
     };
 
     const latexLines = answerLines.map((line) => {
@@ -76,10 +76,8 @@ export default function Answer({
     // Use align* environment for multiple lines in a single block
     const latexString = `\\begin{align*} ${latexLines.join(" \\\\ ")} \\end{align*}`;
 
-
     return (
         <Container fluid className={"d-grid px-0 mx-0 shadow rounded"}>
-
             <Row>
                 <Col>
                     <Form.Group>
@@ -126,7 +124,7 @@ export default function Answer({
                                     <Col sm={2} className={"text-center"}>
                                         <Form.Control
                                             className={"rounded-end-0"}
-                                            aria-label={"Grammar variable input"}
+                                            aria-label={`Grammar variable input for line ${index + 1}`}
                                             type={"search"}
                                             value={line.variable}
                                             onChange={(e) =>
@@ -145,7 +143,7 @@ export default function Answer({
                                     <Col sm={5}>
                                         <Form.Control
                                             className={"rounded-start-0"}
-                                            aria-label={"Grammar rules input"}
+                                            aria-label={`Grammar rules input for line ${index + 1}`}
                                             type={"search"}
                                             value={line.rules}
                                             onChange={(e) =>
@@ -161,7 +159,7 @@ export default function Answer({
                                         <Button
                                             variant={"outline-secondary"}
                                             type={"button"}
-                                            aria-label={"Delete line"}
+                                            aria-label={`Delete line ${index + 1}`}
                                             disabled={answerLines.length === 1}
                                             className={"shadow"}
                                             onClick={() => handleDeleteLine(line.line_index)}
@@ -169,10 +167,8 @@ export default function Answer({
                                             Delete
                                         </Button>
                                     </Col>
-
                                 </InputGroup>
                             </Row>
-
                         ))}
 
                         <Row className={"py-1 text-start"}>
@@ -180,7 +176,7 @@ export default function Answer({
                                 <Button
                                     variant={"outline-success"}
                                     type={"button"}
-                                    aria-label={"Add line"}
+                                    aria-label={"Add new grammar line"}
                                     className={"shadow rounded-5"}
                                     onClick={handleAddLine}
                                 >
@@ -188,12 +184,9 @@ export default function Answer({
                                 </Button>
                             </Col>
                         </Row>
-
                     </Form.Control>
                 </Form.FloatingLabel>
             </Form.Group>
-
         </Container>
-
     );
 }

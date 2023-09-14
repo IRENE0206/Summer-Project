@@ -1,8 +1,11 @@
 import secrets
+from base64 import b64decode
 from functools import wraps
 
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import unpad
 from flask import (
-    Blueprint, request, session, jsonify
+    Blueprint, request, session, jsonify, current_app
 )
 from flask_cors import CORS
 from sqlalchemy.exc import IntegrityError
@@ -122,13 +125,21 @@ def get_user():
 
 @bp.route("/verify_session_identifier", methods=["POST"])
 def verify_session_identifier():
-    token = request.headers.get("Authorization")
-    if not token:
+    key = current_app.config['SECRET_KEY']
+    encrypted_token = request.headers.get("Authorization")
+    if not encrypted_token:
         return badrequest_handler("Missing or invalid Authorization header")
-    if token == session.get(SESSION_IDENTIFIER):
+
+    # Decrypt the token using the server's SECRET_KEY
+    decrypted_token = decrypt_session_identifier(encrypted_token, key)
+
+    if not decrypted_token:
+        return badrequest_handler("Failed to decrypt the session identifier")
+
+    if decrypted_token == session.get(SESSION_IDENTIFIER):
         return succeed("Successfully authenticated")
-    return unauthorized_handler(
-        "token" + token + "Given token failed to pass authentication " + session.get(SESSION_IDENTIFIER))
+
+    return unauthorized_handler("Given token failed to pass authentication")
 
 
 @bp.route("/logout", methods=["POST"])
@@ -139,3 +150,19 @@ def logout():
 
 def generate_session_identifier():
     return secrets.token_hex(16)
+
+
+def decrypt_session_identifier(encrypted_identifier: str, key: str):
+    try:
+        # Decode the base64 encoded string
+        ct = b64decode(encrypted_identifier)
+        # Extract the nonce and ciphertext
+        nonce, ciphertext = ct[:16], ct[16:]
+        # Create AES cipher object
+        cipher = AES.new(key.encode(), AES.MODE_EAX, nonce=nonce)
+        # Decrypt the ciphertext
+        plaintext = unpad(cipher.decrypt(ciphertext), AES.block_size).decode("utf-8")
+        return plaintext
+    except Exception as e:
+        print(f"Error during decryption: {e}")
+        return None

@@ -1,7 +1,6 @@
 "use client";
 import React, {useContext, useState} from "react";
 import {Alert, Dropdown, Toast, ToastContainer} from "react-bootstrap";
-import Link from "next/link";
 import {SESSION_IDENTIFIER} from "@/utils/constants";
 import UserInfoContext from "@/utils/UserInfoContext";
 import {fetchAPI} from "@/utils/fetchAPI";
@@ -62,11 +61,9 @@ export default function UserMenu() {
                 <span>{userInfo.user_name}</span>
             </Dropdown.Toggle>
             <Dropdown.Menu align={"start"} className={"w-100 text-center"}>
-                <Link href="/">
-                    <Dropdown.Item as={"button"} onClick={onClickHandler}>
-                        Sign out
-                    </Dropdown.Item>
-                </Link>
+                <Dropdown.Item href="/" onClick={onClickHandler}>
+                    Sign out
+                </Dropdown.Item>
             </Dropdown.Menu>
         </Dropdown>
     );

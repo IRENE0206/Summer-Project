@@ -1,9 +1,8 @@
 import os
-from secrets import token_hex
 
 from flask import Flask
-from flask_session import Session
 from flask_cors import CORS
+from flask_session import Session
 
 from . import util, auth, run, parser
 from .db import db
@@ -18,13 +17,10 @@ def create_app(test_config=None):
 
     # Configure the app
     app.config.from_mapping(
-        # TODO: should have a fixed secret key, preferably stored as an environment variable
-        # SECRET_KEY=os.environ.get('SECRET_KEY', default=token_hex(16))
-        SECRET_KEY=token_hex(16),
+        SECRET_KEY=os.environ.get("SECRET_KEY"),
         SESSION_PERMANENT=False,
         SESSION_TYPE="filesystem",
-        # TODO: ? check if the SQLite file exists and handle accordingly
-        SQLALCHEMY_DATABASE_URI="sqlite:///"+database_path,
+        SQLALCHEMY_DATABASE_URI="sqlite:///" + database_path,
     )
 
     # Initialize the session
@@ -50,6 +46,5 @@ def create_app(test_config=None):
     app.register_blueprint(auth.bp)
     app.register_blueprint(run.bp)
     app.register_blueprint(parser.bp)
-
 
     return app

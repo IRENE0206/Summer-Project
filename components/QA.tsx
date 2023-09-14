@@ -1,14 +1,8 @@
 import React, {useEffect, useState} from "react";
-import Answer from "./Answer";
-import Form from "react-bootstrap/Form";
-import Button from "react-bootstrap/Button";
-
-import {ExerciseDataInterface, Line} from "@/interfaces/Interfaces";
-import Card from "react-bootstrap/Card";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
+import {Button, Card, Col, Container, Form, Row} from "react-bootstrap";
 import Latex from "react-latex-next";
-import {Container} from "react-bootstrap";
+import Answer from "./Answer";
+import {ExerciseDataInterface, Line} from "@/interfaces/Interfaces";
 
 export default function QA({
     index,
@@ -49,10 +43,19 @@ export default function QA({
         });
     }, [number, question, answerLines]);
 
+    const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const updatedNumber = e.target.value;
+        setManuallyEdited(true);
+        setNumber(updatedNumber);
+    };
+
+    const handleQuestionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const updatedQuestion = e.target.value;
+        setQuestion(updatedQuestion);
+    };
 
     return (
         <Card border={"success"} className={"shadow my-3 rounded-5"}>
-
             <Card.Header className={"d-flex align-items-start rounded-5 shadow-sm"}>
                 <Form.Group>
                     <Form.FloatingLabel label={"Exercise Number:"}>
@@ -60,10 +63,7 @@ export default function QA({
                             className={"d-flex border-secondary-subtle shadow"}
                             value={number}
                             name={`index${number}`}
-                            onChange={(e) => {
-                                setNumber(e.target.value);
-                                setManuallyEdited(true);
-                            }}
+                            onChange={handleNumberChange}
                         />
                     </Form.FloatingLabel>
                 </Form.Group>
@@ -95,7 +95,7 @@ export default function QA({
                                                 className={"h-auto border-secondary-subtle shadow"}
                                                 value={question}
                                                 name={`question${number}`}
-                                                onChange={(e) => setQuestion(e.target.value)}
+                                                onChange={handleQuestionChange}
                                             />
                                         </Form.FloatingLabel>
                                     </Form.Group>

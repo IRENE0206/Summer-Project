@@ -5,8 +5,7 @@ import {useRouter} from "next/navigation";
 
 import {Button, Card, Col, Container, Form, InputGroup, Row, Tab, Tabs, Toast, ToastContainer} from "react-bootstrap";
 
-import CryptoJS from "crypto-js";
-import {SECRET_KEY, SESSION_IDENTIFIER} from "@/utils/constants";
+import {ENCRYPTED_SESSION_IDENTIFIER} from "@/utils/constants";
 
 
 interface FormDataModel {
@@ -74,20 +73,16 @@ export default function Index() {
             console.error(toastMessage);
             return;
         }
-        const sessionIdentifier = responseData[SESSION_IDENTIFIER];
-        if (!sessionIdentifier) {
+        const encryptedSessionIdentifier = responseData[ENCRYPTED_SESSION_IDENTIFIER];
+        if (!encryptedSessionIdentifier) {
             setToastMessage("Session identifier missing from server response.");
             console.error(toastMessage);
             return;
         }
-        console.log(SESSION_IDENTIFIER + " " + sessionIdentifier);
-        const encryptedSessionIdentifier = CryptoJS.AES.encrypt(
-            sessionIdentifier,
-            SECRET_KEY
-        ).toString();
-        console.log("encryptedSessionIdentifier " + encryptedSessionIdentifier);
+        console.log(ENCRYPTED_SESSION_IDENTIFIER + " " + encryptedSessionIdentifier);
+
         localStorage.setItem(
-            SESSION_IDENTIFIER,
+            ENCRYPTED_SESSION_IDENTIFIER,
             encryptedSessionIdentifier
         );
         router.push("/home");
