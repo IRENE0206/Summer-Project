@@ -34,7 +34,7 @@ class Workbook(db.Model):
     release_date = db.Column(db.DateTime)
 
     # Relationships
-    exercises = db.relationship(EXERCISE, back_populates="workbook", lazy="dynamic")
+    exercises = db.relationship(EXERCISE, back_populates="workbook")
 
 
 class Exercise(db.Model):

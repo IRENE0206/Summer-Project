@@ -43,6 +43,7 @@ export default function EditWorkbook() {
 
                     // Convert to string in the format YYYY-MM-DDTHH:MM:SS
                     const formattedReleaseDateTime = releaseDateTime.toISOString().split(".")[0].split("T");
+                    console.log("formattedReleaseDateTime" + formattedReleaseDateTime);
                     const formattedReleaseDate = formattedReleaseDateTime[0];
                     const formattedReleaseTime = formattedReleaseDateTime[1];
                     setReleaseDate(formattedReleaseDate);
@@ -65,9 +66,10 @@ export default function EditWorkbook() {
 
     // Update data to the backend
     const updateData = async () => {
+        console.log(`${releaseDate}T${releaseTime}`);
         const updatedWorkbookData: WorkbookDataInterface = {
             workbook_name: workbookName,
-            release_date: `${releaseDate}T${releaseTime}:00`,
+            release_date: `${releaseDate}T${releaseTime}`,
             exercises: exercises,
         };
 

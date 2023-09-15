@@ -54,13 +54,16 @@ def register():
         return conflict_handler("Passwords do not match.")
 
     try:
-        role = UserRole.REGULAR
         if user_name == ADMIN_USERNAME:
             role = UserRole.ADMIN
+        else:
+            role = UserRole.REGULAR
+
         new_user = User(user_name=user_name, password=generate_password_hash(password), role=role)
         db.session.add(new_user)
         db.session.commit()
     except IntegrityError:
+        db.session.rollback()
         return conflict_handler("Username is already in use.")
 
     session[USER_ID] = new_user.user_id
@@ -132,13 +135,15 @@ def verify_session_identifier():
     if not encrypted_token:
         return badrequest_handler("Missing or invalid Authorization header")
 
-    # Decrypt the token using the server's SECRET_KEY
-    decrypted_token = decrypt_session_identifier(encrypted_token)
-
-    if decrypted_token == session.get(SESSION_IDENTIFIER):
+    if verify_encrypted_session_identifier(encrypted_token):
         return succeed("Authentication successful")
 
     return unauthorized_handler("Given token failed to pass authentication")
+
+
+def verify_encrypted_session_identifier(encrypted_token) -> bool:
+    decrypted_token = decrypt_session_identifier(encrypted_token)
+    return decrypted_token == session.get(SESSION_IDENTIFIER)
 
 
 @bp.route("/logout", methods=["POST"])

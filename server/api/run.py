@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime
 
 from flask import (
@@ -9,16 +10,25 @@ from sqlalchemy.exc import SQLAlchemyError
 from .auth import login_required, USER_ID, IS_ADMIN
 from .db import db, Workbook, Exercise, Answer, Line
 from .util import (
-    unauthorized_handler, badrequest_handler, internal_server_error_handler, notfound_handler
+    unauthorized_handler, badrequest_handler, internal_server_error_handler, notfound_handler, succeed
 )
 
+ALLOWED_ORIGINS = ["*"]  # TODO: change it to my frontend domain
+ALLOWED_METHODS = ["GET", "POST"]
+ALLOWED_HEADERS = ["Content-Type"]
+
 bp = Blueprint("app", __name__, url_prefix="/api")
-CORS(bp)
+CORS(bp, resources={r"/api/*": {
+    "origins": ALLOWED_ORIGINS,
+    "methods": ALLOWED_METHODS,
+    "allow_headers": ALLOWED_HEADERS
+}})
 
 WORKBOOK_ID = "workbook_id"
 WORKBOOK_NAME = "workbook_name"
 RELEASE_DATE = "release_date"
 EXERCISE = "exercise"
+TIME_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
 
 @login_required
@@ -40,35 +50,49 @@ def get_workbooks():
             RELEASE_DATE: workbook.release_date,
         } for workbook in workbooks]), 200
     except SQLAlchemyError:
+        db.session.rollback()
         return internal_server_error_handler("An error occurred when fetching workbooks data")
 
 
 @login_required
 @bp.route("/workbooks/<int:workbook_id>", methods=["GET"])
 def get_workbook(workbook_id: int):
-    workbook = fetch_workbook_with_exercises(workbook_id)
-    if not workbook:
-        return notfound_handler("Workbook not found")
-    response = format_workbook_response(workbook)
-    return jsonify(response), 200
+    try:
+        workbook = fetch_workbook_with_exercises(workbook_id)
+        if not workbook:
+            return notfound_handler("Workbook not found")
+        response = format_workbook_response(workbook)
+        return jsonify(response), 200
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return internal_server_error_handler(f"Database error while fetching workbook: {str(e)}")
+    except Exception as e:
+        db.session.rollback()
+        return internal_server_error_handler(f"An unexpected error occurred: {str(e)}")
 
 
 def fetch_workbook_with_exercises(workbook_id: int):
-    query = db.select(Workbook).filter_by(workbook_id=workbook_id)
+    query = (
+        db.select(Workbook)
+        .options(db.joinedload(Workbook.exercises))  # Eagerly load exercises
+        .filter_by(workbook_id=workbook_id)
+    )
     if not session[IS_ADMIN]:
         query = query.filter(Workbook.release_date < datetime.utcnow())
-    return db.session.execute(query).scalar_one_or_none()
+    return db.session.execute(query).unique().scalar_one_or_none()
 
 
-def fetch_user_answer(exercise_id: int):
+def fetch_user_answers_for_exercises(exercise_ids: list[int]):
     return db.session.execute(
-        db.select(Answer).filter_by(exercise_id=exercise_id, user_id=session[USER_ID])
-    ).scalar_one_or_none()
+        db.select(Answer)
+        .filter(Answer.user_id == session[USER_ID], Answer.exercise_id.in_(exercise_ids))
+    ).scalars().all()
 
 
-def fetch_answer_lines(answer_id: int):
+def fetch_lines_for_answers(answer_ids: list[int]):
     return db.session.execute(
-        db.select(Line).filter_by(answer_id=answer_id)
+        db.select(Line)
+        .filter(Line.answer_id.in_(answer_ids))
     ).scalars().all()
 
 
@@ -79,15 +103,26 @@ def format_workbook_response(workbook: Workbook):
         EXERCISES: [],
     }
     sorted_exercises = sorted(workbook.exercises, key=lambda x: x.exercise_index)
+    exercise_ids = [exercise.exercise_id for exercise in sorted_exercises]
+    answers = fetch_user_answers_for_exercises(exercise_ids)
+    answer_map = {answer.exercise_id: answer for answer in answers}
+
+    answer_ids = [answer.answer_id for answer in answers]
+    lines = fetch_lines_for_answers(answer_ids)
+    line_map = defaultdict(list)
+    for line in lines:
+        line_map[line.answer_id].append(line)
+
     for exercise in sorted_exercises:
-        answer = fetch_user_answer(exercise.exercise_id)
-        lines_data = []
-        if answer:
-            lines_data = [{
+        answer = answer_map.get(exercise.exercise_id)
+        lines_data = [
+            {
                 LINE_INDEX: line.line_index,
                 VARIABLE: line.variable,
                 RULES: line.rules
-            } for line in fetch_answer_lines(answer.answer_id)]
+            }
+            for line in line_map.get(answer.answer_id, [])
+        ]
 
         exercise_data = {
             EXERCISE_ID: exercise.exercise_id,
@@ -112,20 +147,52 @@ FEEDBACK = "feedback"
 EXERCISES = "exercises"
 
 
+@bp.route("/workbooks/update/<int:workbook_id>", methods=["POST"])
 @login_required
-@bp.route("/workbooks/<int:workbook_id>/edit", methods=["POST"])
-def edit_workbook(workbook_id):
-    if not session[IS_ADMIN]:
-        return unauthorized_handler("Only admin user can edit workbooks")
-
-    data = request.get_json()
+def update_workbook(workbook_id: int):
+    data = request.json
     if not data:
         return badrequest_handler("Invalid data format.")
 
-    workbooks = db.session.execute(
-        db.select(Workbook)
-    ).scalars().all()
-    # TODO: implementation
+    try:
+        validate_workbook_data(data)
+        workbook_name = data[WORKBOOK_NAME]
+        release_date = datetime.strptime(data[RELEASE_DATE], TIME_FORMAT)
+        exercises_data = data.get(EXERCISES, [])
+
+        # Update the workbook
+        workbook_query = db.update(Workbook).where(Workbook.workbook_id == workbook_id).values(
+            workbook_name=workbook_name, release_date=release_date)
+        db.session.execute(workbook_query)
+
+        # Update exercises associated with this workbook
+        for exercise_data in exercises_data:
+            validate_exercise_data(exercise_data)
+            exercise_query = db.update(Exercise).where(Exercise.exercise_id == exercise_data[EXERCISE_ID]).values(
+                exercise_index=exercise_data[EXERCISE_INDEX],
+                exercise_number=exercise_data[EXERCISE_NUMBER],
+                exercise_content=exercise_data[EXERCISE_CONTENT]
+            )
+            db.session.execute(exercise_query)
+
+            for line_data in exercise_data[LINES]:
+                line_query = db.update(Line).where(Line.line_id == line_data[LINE_INDEX]).values(
+                    variable=line_data[VARIABLE],
+                    rules=line_data[RULES]
+                )
+                db.session.execute(line_query)
+
+        db.session.commit()
+        return succeed("Workbook updated successfully.")
+    except ValueError as ve:
+        db.session.rollback()
+        return badrequest_handler(f"Validation Error: {ve}")
+    except SQLAlchemyError as se:
+        db.session.rollback()
+        return internal_server_error_handler(f"An error occurred while updating data: {str(se)}")
+    except Exception as e:
+        db.session.rollback()
+        return internal_server_error_handler(f"An unexpected error occurred: {str(e)}")
 
 
 @login_required
@@ -169,7 +236,7 @@ def add_workbook():
 
 
 def create_workbook(workbook_data) -> Workbook:
-    release_date = datetime.strptime(workbook_data[RELEASE_DATE], "%Y-%m-%dT%H:%M:%S")
+    release_date = datetime.strptime(workbook_data[RELEASE_DATE], TIME_FORMAT)
     return Workbook(workbook_name=workbook_data[WORKBOOK_NAME], release_date=release_date)
 
 
