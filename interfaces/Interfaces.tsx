@@ -22,13 +22,6 @@ export interface Line {
     rules: string;
 }
 
-export interface QAInterface {
-    id: number,
-    index: number,
-    number: string,
-    question: string,
-    answer: Line[]
-}
 
 export interface ExerciseDataInterface {
     exercise_id: number,

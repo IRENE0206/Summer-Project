@@ -4,7 +4,7 @@ import Latex from "react-latex-next";
 import Answer from "./Answer";
 import {ExerciseDataInterface, Line} from "@/interfaces/Interfaces";
 
-export default function QA({
+export default function Exercise({
     index,
     onDelete,
     isDeleteDisabled,

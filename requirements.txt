@@ -4,4 +4,4 @@ Flask-SQLAlchemy~=3.0.5
 SQLAlchemy~=2.0.20
 werkzeug~=2.3.7
 pytest~=7.4.0
-pycryptodome~=3.18.0
+cryptography~=41.0.3

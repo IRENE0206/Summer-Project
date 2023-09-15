@@ -11,9 +11,6 @@ import "bootstrap/dist/css/bootstrap.css";
 import "katex/dist/katex.min.css";
 
 import type {Metadata} from "next";
-import {Inter} from "next/font/google";
-
-const inter = Inter({subsets: ["latin"]});
 
 export const metadata: Metadata = {
     /*TODO:*/
@@ -29,7 +26,7 @@ export default function RootLayout({
     return (
         <html lang={"en-GB"}>
             <body
-                className={inter.className + " bg-primary-subtle d-grid align-items-center justify-content-center"}
+                className={"bg-primary-subtle d-grid align-items-center justify-content-center"}
             >{children}</body>
         </html>
     );

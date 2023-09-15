@@ -152,7 +152,7 @@ def add_workbook():
             answer = create_answer(exercise.exercise_id)
             db.session.add(answer)
             db.session.flush()
-            for line_data in exercise_data[ANSWER]:
+            for line_data in exercise_data[LINES]:
                 validate_line_data(line_data)
                 line = create_line(line_data, exercise.exercise_id)
                 if line:
@@ -177,9 +177,9 @@ INDEX = "index"
 
 
 def create_exercise(exercise_data, workbook_id: int) -> Exercise:
-    return Exercise(exercise_number=exercise_data[NUMBER].strip(),
-                    exercise_index=exercise_data[INDEX],
-                    exercise_content=exercise_data[QUESTION].strip(),
+    return Exercise(exercise_number=exercise_data[EXERCISE_NUMBER].strip(),
+                    exercise_index=exercise_data[EXERCISE_INDEX],
+                    exercise_content=exercise_data[EXERCISE_CONTENT].strip(),
                     workbook_id=workbook_id)
 
 
@@ -206,14 +206,11 @@ def validate_workbook_data(data) -> None:
 
 
 def validate_exercise_data(data) -> None:
-    required_keys = [NUMBER, QUESTION, ANSWER]
+    required_keys = [EXERCISE_NUMBER, EXERCISE_CONTENT, LINES]
     entity_name = EXERCISE
     validate_data(data, required_keys, entity_name)
 
 
-NUMBER = "number"
-QUESTION = "question"
-ANSWER = "answer"
 LINE = "line"
 LINE_INDEX = "line_index"
 VARIABLE = "variable"

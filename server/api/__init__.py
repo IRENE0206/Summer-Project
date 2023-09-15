@@ -17,6 +17,8 @@ def create_app(test_config=None):
 
     # Configure the app
     app.config.from_mapping(
+        # Ensure the SECRET_KEY is set
+        # If os.environ.get("SECRET_KEY") doesn't retrieve a key, it'll default to None
         SECRET_KEY=os.environ.get("SECRET_KEY"),
         SESSION_PERMANENT=False,
         SESSION_TYPE="filesystem",

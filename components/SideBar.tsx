@@ -5,6 +5,7 @@ import WorkbooksNavBar from "@/components/WorkbooksNavBar";
 import UserMenu from "@/components/UserMenu";
 import OffCanvasContext from "@/utils/OffCanvasContext";
 import UserInfoContext from "@/utils/UserInfoContext";
+import {WEBSITE_NAME} from "@/utils/constants";
 
 
 export default function SideBar() {
@@ -32,7 +33,7 @@ export default function SideBar() {
         >
             <Offcanvas.Header closeButton closeVariant={"white"} className={"bg-dark"}>
                 <Offcanvas.Title className={"text-white"}>
-                    WEBSITE NAME{/*TODO*/}
+                    {WEBSITE_NAME}
                 </Offcanvas.Title>
             </Offcanvas.Header>
 

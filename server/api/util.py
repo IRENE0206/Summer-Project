@@ -3,6 +3,7 @@ from flask_cors import CORS
 
 bp = Blueprint("util", __name__)
 CORS(bp)
+ENCRYPTED_SESSION_IDENTIFIER = "session_identifier"
 
 
 @bp.errorhandler(401)
@@ -47,10 +48,10 @@ def response_generator(status_code, message=None, **kwargs):
     return response
 
 
-def succeed(message, session_identifier=None):
+def succeed(message, encrypted_session_identifier=None):
     response_data = {"message": message}
-    if session_identifier is not None:
-        response_data["session_identifier"] = session_identifier
+    if encrypted_session_identifier is not None:
+        response_data[ENCRYPTED_SESSION_IDENTIFIER] = encrypted_session_identifier
 
     response = jsonify(response_data)
     response.status_code = 200

@@ -1,7 +1,7 @@
 "use client";
 import React, {useContext, useState} from "react";
 import {Alert, Dropdown, Toast, ToastContainer} from "react-bootstrap";
-import {SESSION_IDENTIFIER} from "@/utils/constants";
+import {ENCRYPTED_SESSION_IDENTIFIER} from "@/utils/constants";
 import UserInfoContext from "@/utils/UserInfoContext";
 import {fetchAPI} from "@/utils/fetchAPI";
 
@@ -20,7 +20,7 @@ export default function UserMenu() {
     }
 
     const onClickHandler = async () => {
-        localStorage.removeItem(SESSION_IDENTIFIER);
+        localStorage.removeItem(ENCRYPTED_SESSION_IDENTIFIER);
         const api = "/api/logout";
         const res = await fetchAPI(api, {method: "POST"});
         if (res.success) {
