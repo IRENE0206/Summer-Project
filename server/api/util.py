@@ -1,4 +1,4 @@
-from flask import jsonify, Blueprint
+from flask import jsonify, Blueprint, current_app
 from flask_cors import CORS
 
 bp = Blueprint("util", __name__)
@@ -8,26 +8,31 @@ ENCRYPTED_SESSION_IDENTIFIER = "session_identifier"
 
 @bp.errorhandler(401)
 def unauthorized_handler(message: str):
+    current_app.logger.error(message)
     return response_generator(401, message)
 
 
 @bp.errorhandler(500)
 def internal_server_error_handler(message: str):
+    current_app.logger.error(message)
     return response_generator(500, message)
 
 
 @bp.errorhandler(404)
 def notfound_handler(message: str):
+    current_app.logger.error(message)
     return response_generator(404, message)
 
 
 @bp.errorhandler(400)
 def badrequest_handler(message: str):
+    current_app.logger.error(message)
     return response_generator(400, message)
 
 
 @bp.errorhandler(409)
 def conflict_handler(message: str):
+    current_app.logger.error(message)
     return response_generator(409, message)
 
 

@@ -11,14 +11,28 @@ export default function EditWorkbook() {
     const [workbookId, setWorkbookId] = useState(useParams()["workbook_id"]);
     const isNewWorkbook = (workbookId === "new");
     const userInfo = useContext(UserInfoContext);
-    const api = `/api/workbooks/${workbookId}`;
-
+    const workbookAPI = `/api/workbooks/${workbookId}`;
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [isSaving, setIsSaving] = useState<boolean>(false);
+    const [isChecking, setIsChecking] = useState<boolean>(false);
+    const [feedbacks, setFeedbacks] = useState<{ [key: number]: string } | null>(null);
     const [workbookName, setWorkbookName] = useState<string>("");
     const [releaseDate, setReleaseDate] = useState("");
     const [releaseTime, setReleaseTime] = useState("");
     const router = useRouter();
+    const [showExitModal, setShowExitModal] = useState(false);
+    useEffect(() => {
+        const handleExit = (event: BeforeUnloadEvent) => {
+            event.preventDefault();
+            event.returnValue = "Note: Save all your changes before exiting";
+            setShowExitModal(true);
+        };
+        window.addEventListener("beforeunload", handleExit);
 
+        return () => {
+            window.removeEventListener("beforeunload", handleExit);
+        };
+    }, [isSaving]);
     const [exercises, setExercises] = useState<ExerciseDataInterface[]>([
         {
             exercise_id: 1, exercise_index: 1, exercise_number: "1",
@@ -34,7 +48,7 @@ export default function EditWorkbook() {
             setIsLoading(true);
             try {
                 console.log("before fetch");
-                const response = await fetchAPI(api, {method: "GET"});
+                const response = await fetchAPI(workbookAPI, {method: "GET"});
                 console.log("after fetch");
                 if (response.success) {
                     setWorkbookName((response.data as WorkbookDataInterface).workbook_name);
@@ -74,7 +88,7 @@ export default function EditWorkbook() {
         };
 
         const updateApi = (isNewWorkbook ? "/api/workbooks/new" : `/api/workbooks/update/${workbookId}`);
-        setIsLoading(true);
+        setIsSaving(true);
         try {
             const response = await fetchAPI(updateApi, {
                 method: "POST",
@@ -92,13 +106,37 @@ export default function EditWorkbook() {
         } catch (error) {
             console.error("An error occurred while updating data.", error);
         }
-        setIsLoading(false);
+        setIsSaving(false);
+    };
+
+    const checkingFeedbacks = async () => {
+        const feedbackAPI = `api/workbooks/check/${workbookId}`;
+        await updateData();
+        setIsChecking(true);
+        try {
+            console.log("before fetch");
+            const response = await fetchAPI(feedbackAPI, {method: "POST"});
+            console.log("after fetch");
+            if (response.success) {
+                setFeedbacks(response.data as { [key: number]: string });
+            } else {
+                console.error(response.errorMessage || "An error occurred.");
+            }
+        } catch (error) {
+            console.error("An error occurred while checking answers", error);
+        }
+        setIsChecking(false);
     };
 
     // Form submission handler
-    const handleSubmit = async (event: React.FormEvent) => {
+    const handleSave = async (event: React.FormEvent) => {
         event.preventDefault();
         await updateData();
+    };
+
+    const handleCheck = async (event: React.FormEvent) => {
+        event.preventDefault();
+        await checkingFeedbacks();
     };
 
     const handleAddQA = () => {
@@ -120,7 +158,6 @@ export default function EditWorkbook() {
         if (exercises.length === 1) {
             return;
         }
-
         setExercises(
             exercises
                 .filter((exercise) => exercise.exercise_id !== id)
@@ -185,115 +222,157 @@ export default function EditWorkbook() {
                 </Toast>
             </ToastContainer>
 
+            <Toast show={showExitModal} onClose={() => setShowExitModal(false)}>
+                <Toast.Header closeButton>
+                    Unsaved Changes
+                </Toast.Header>
+                <Toast.Body>
+                    <p>
+                        You have unsaved changes. Do you want to leave without saving?
+                    </p>
+
+                    <Button variant="secondary" onClick={() => setShowExitModal(false)}>
+                        Do not Save
+                    </Button>
+                    <Button variant="primary" onClick={async () => {
+                        await updateData();
+                        setShowExitModal(false);
+                    }}>
+                        Save All
+                    </Button>
+                </Toast.Body>
+            </Toast>
+
             <Card
                 className={"d-flex flex-column justify-content-center align-items-center ms-md-5 px-3 rounded-5 shadow-lg"}>
                 <Card.Body className={"d-flex flex-column justify-content-center align-items-center rounded-5 p-0 m-3"}>
+                    {isLoading ? (<Spinner>Loading</Spinner>) :
+                        <Form method={"post"} onSubmit={handleSave} className={"p-0 m-0"}>
 
-                    <Form method={"post"} onSubmit={handleSubmit} className={"p-0 m-0"}>
+                            <Card border={"primary"} className={"my-3 shadow rounded-5"}>
+                                <Card.Body className={"d-grid"}>
+                                    <Row>
+                                        <Col>
+                                            <Form.Group>
+                                                <Form.FloatingLabel
+                                                    label={"Workbook Name: "}
+                                                >
+                                                    <Form.Control
+                                                        className={"border-secondary-subtle shadow" + (!userInfo?.is_admin && " bg-secondary-subtle")}
+                                                        type={"text"}
+                                                        value={workbookName}
+                                                        onChange={(e) => setWorkbookName(e.target.value)}
+                                                        readOnly={!userInfo.is_admin}
+                                                    />
+                                                </Form.FloatingLabel>
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
 
-                        <Card border={"primary"} className={"my-3 shadow rounded-5"}>
-                            <Card.Body className={"d-grid"}>
-                                <Row>
-                                    <Col>
-                                        <Form.Group>
-                                            <Form.FloatingLabel
-                                                label={"Workbook Name: "}
-                                            >
-                                                <Form.Control
-                                                    className={"border-secondary-subtle shadow"}
-                                                    type={"text"}
-                                                    value={workbookName}
-                                                    onChange={(e) => setWorkbookName(e.target.value)}
-                                                />
-                                            </Form.FloatingLabel>
-                                        </Form.Group>
+                                    <Row className={"d-flex flex-row"}>
+
+                                        <Col className={"mx-0 pe-0"}>
+                                            <Form.Group>
+                                                <Form.FloatingLabel
+                                                    label={"Release Date: "}
+                                                >
+                                                    <Form.Control
+                                                        className={"mx-0 border-secondary-subtle shadow" + (!userInfo?.is_admin && " bg-secondary-subtle")}
+                                                        type={"date"}
+                                                        value={releaseDate}
+                                                        onChange={(e) => setReleaseDate(e.target.value)}
+                                                        readOnly={!userInfo.is_admin}
+                                                    />
+                                                </Form.FloatingLabel>
+                                            </Form.Group>
+                                        </Col>
+
+                                        <Col className={"mx-0 ps-0"}>
+                                            <Form.Group>
+                                                <Form.FloatingLabel
+                                                    label={"Release Time: "}
+                                                >
+                                                    <Form.Control
+                                                        className={"mx-0 border-secondary-subtle shadow" + (!userInfo?.is_admin && " bg-secondary-subtle")}
+                                                        type={"time"}
+                                                        value={releaseTime}
+                                                        onChange={(e) => setReleaseTime(e.target.value + ":00")}
+                                                        readOnly={!userInfo.is_admin}
+                                                    />
+                                                </Form.FloatingLabel>
+                                            </Form.Group>
+                                        </Col>
+
+                                    </Row>
+
+                                </Card.Body>
+                            </Card>
+
+                            {exercises.map((exercise) => (
+                                <Container key={exercise.exercise_id} className={"d-flex flex-column m-0 p-0"}>
+                                    <Exercise
+                                        index={exercise.exercise_index}
+                                        qa={exercise}
+                                        externalOnChange={(data) =>
+                                            handleQAChange(
+                                                exercise.exercise_id,
+                                                exercise.exercise_index,
+                                                data.number,
+                                                data.question,
+                                                data.answerLines
+                                            )
+                                        }
+                                        onDelete={() => handleDeleteQA(exercise.exercise_id)}
+                                        isDeleteDisabled={exercises.length === 1}
+                                    />
+                                    {userInfo.is_admin && feedbacks && <Alert>feedbacks?[exercise.exercise_id]</Alert>}
+                                </Container>
+                            ))}
+                            <Row className={"d-flex flex-row"}>
+                                {userInfo.is_admin &&
+                                    <Col className={"text-start"}>
+                                        <Button
+                                            variant={"outline-success"}
+                                            type={"button"}
+                                            onClick={handleAddQA}
+                                            size={"lg"}
+                                            className={"shadow rounded-5"}
+                                        >
+                                            Add Q&A
+                                        </Button>
                                     </Col>
-                                </Row>
-
-                                <Row className={"d-flex flex-row"}>
-
-                                    <Col className={"mx-0 pe-0"}>
-                                        <Form.Group>
-                                            <Form.FloatingLabel
-                                                label={"Release Date: "}
-                                            >
-                                                <Form.Control
-                                                    className={"mx-0 border-secondary-subtle shadow"}
-                                                    type={"date"}
-                                                    value={releaseDate}
-                                                    onChange={(e) => setReleaseDate(e.target.value)}
-                                                />
-                                            </Form.FloatingLabel>
-                                        </Form.Group>
-                                    </Col>
-
-                                    <Col className={"mx-0 ps-0"}>
-                                        <Form.Group>
-                                            <Form.FloatingLabel
-                                                label={"Release Time: "}
-                                            >
-                                                <Form.Control
-                                                    className={"border-secondary-subtle shadow"}
-                                                    type={"time"}
-                                                    value={releaseTime}
-                                                    onChange={(e) => setReleaseTime(e.target.value)}
-                                                />
-                                            </Form.FloatingLabel>
-                                        </Form.Group>
-                                    </Col>
-
-                                </Row>
-
-                            </Card.Body>
-                        </Card>
-
-                        {exercises.map((exercise) => (
-                            <Exercise
-                                key={exercise.exercise_id}
-                                index={exercise.exercise_index}
-                                qa={exercise}
-                                externalOnChange={(data) =>
-                                    handleQAChange(
-                                        exercise.exercise_id,
-                                        exercise.exercise_index,
-                                        data.number,
-                                        data.question,
-                                        data.answerLines
-                                    )
                                 }
-                                onDelete={() => handleDeleteQA(exercise.exercise_id)}
-                                isDeleteDisabled={exercises.length === 1}
-                            />
+                                <Col>
+                                    <Button
+                                        variant={"outline-primary"}
+                                        type={"submit"}
+                                        size={"lg"}
+                                        className={"shadow rounded-5"}
+                                    >
+                                        {isSaving ? "Saving..." : "Save All"}
+                                    </Button>
+                                </Col>
 
-                        ))}
-                        <Row className={"d-flex flex-row"}>
+                                {!userInfo.is_admin &&
+                                    <Col className={"text-end"}>
+                                        <Button
+                                            variant={"outline-info"}
+                                            type={"button"}
+                                            size={"lg"}
+                                            className={"shadow rounded-5"}
+                                            onClick={handleCheck}
+                                        >
+                                            {isChecking ? "Checking..." : "Check Answers"}
+                                        </Button>
+                                    </Col>
 
-                            <Col className={"text-start"}>
-                                <Button
-                                    variant={"outline-success"}
-                                    type={"button"}
-                                    onClick={handleAddQA}
-                                    size={"lg"}
-                                    className={"shadow rounded-5"}
-                                >
-                                    Add Q&A
-                                </Button>
-                            </Col>
+                                }
 
-                            <Col className={"text-end"}>
-                                <Button
-                                    variant={"outline-primary"}
-                                    type={"submit"}
-                                    size={"lg"}
-                                    className={"shadow rounded-5"}
-                                >
-                                    {isLoading ? <Spinner animation={"border"} size={"sm"}/> : "Save All"}
-                                </Button>
-                            </Col>
+                            </Row>
 
-                        </Row>
+                        </Form>
 
-                    </Form>
+                    }
                 </Card.Body>
             </Card>
         </Container>

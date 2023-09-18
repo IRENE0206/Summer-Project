@@ -1,8 +1,9 @@
-import React, {useEffect, useState} from "react";
+import React, {useContext, useEffect, useState} from "react";
 import {Button, Card, Col, Container, Form, Row} from "react-bootstrap";
 import Latex from "react-latex-next";
 import Answer from "./Answer";
 import {ExerciseDataInterface, Line} from "@/interfaces/Interfaces";
+import userInfoContext from "@/utils/UserInfoContext";
 
 export default function Exercise({
     index,
@@ -21,6 +22,7 @@ export default function Exercise({
     }) => void;
     qa?: ExerciseDataInterface;
 }) {
+    const userInfo = useContext(userInfoContext);
     const [manuallyEdited, setManuallyEdited] = useState(false);
     const [number, setNumber] = useState<string>(qa?.exercise_number || index.toString());
     const [question, setQuestion] = useState<string>(qa?.exercise_content || "");
@@ -60,10 +62,11 @@ export default function Exercise({
                 <Form.Group>
                     <Form.FloatingLabel label={"Exercise Number:"}>
                         <Form.Control
-                            className={"d-flex border-secondary-subtle shadow"}
+                            className={"d-flex border-secondary-subtle shadow" + (!userInfo?.is_admin && " bg-secondary-subtle")}
                             value={number}
                             name={`index${number}`}
                             onChange={handleNumberChange}
+                            readOnly={!userInfo?.is_admin}
                         />
                     </Form.FloatingLabel>
                 </Form.Group>
@@ -76,7 +79,7 @@ export default function Exercise({
                             <Row>
                                 <Col>
                                     <Form.Group>
-                                        <Form.FloatingLabel label={"Question Preview:"}>
+                                        <Form.FloatingLabel label={"Question View:"}>
                                             <Form.Control as={Container}
                                                 className={"rounded-bottom-0 h-auto bg-secondary-subtle"}>
                                                 <Latex>{`${question}`}</Latex>
@@ -85,8 +88,7 @@ export default function Exercise({
                                     </Form.Group>
                                 </Col>
                             </Row>
-
-                            <Row>
+                            {userInfo?.is_admin && <Row>
                                 <Col>
                                     <Form.Group>
                                         <Form.FloatingLabel label={"Question Input:"}>
@@ -96,11 +98,13 @@ export default function Exercise({
                                                 value={question}
                                                 name={`question${number}`}
                                                 onChange={handleQuestionChange}
+                                                readOnly={!userInfo.is_admin}
                                             />
                                         </Form.FloatingLabel>
                                     </Form.Group>
                                 </Col>
-                            </Row>
+                            </Row>}
+
                         </Container>
                     </Col>
                 </Row>
@@ -111,8 +115,7 @@ export default function Exercise({
                     </Col>
                 </Row>
             </Card.Body>
-
-            <Card.Footer className={"text-end rounded-5 shadow-sm"}>
+            {userInfo?.is_admin && <Card.Footer className={"text-end rounded-5 shadow-sm"}>
                 <Button
                     type={"button"}
                     value={"Delete Exercise"}
@@ -123,7 +126,7 @@ export default function Exercise({
                 >
                     Delete Exercise
                 </Button>
-            </Card.Footer>
+            </Card.Footer>}
         </Card>
     );
 }

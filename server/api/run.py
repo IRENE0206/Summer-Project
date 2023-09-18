@@ -2,13 +2,13 @@ from collections import defaultdict
 from datetime import datetime
 
 from flask import (
-    request, Blueprint, session, jsonify
+    request, Blueprint, session, jsonify, current_app
 )
 from flask_cors import CORS
 from sqlalchemy.exc import SQLAlchemyError
 
-from .auth import login_required, USER_ID, IS_ADMIN
-from .db import db, Workbook, Exercise, Answer, Line
+from .auth import login_required, USER_ID, IS_ADMIN, ADMIN_USERNAME
+from .db import db, Workbook, Exercise, Answer, Line, User
 from .util import (
     unauthorized_handler, badrequest_handler, internal_server_error_handler, notfound_handler, succeed
 )
@@ -52,6 +52,9 @@ def get_workbooks():
     except SQLAlchemyError:
         db.session.rollback()
         return internal_server_error_handler("An error occurred when fetching workbooks data")
+    except Exception as e:
+        db.session.rollback()
+        return internal_server_error_handler(f"An unexpected error occurred: {str(e)}")
 
 
 @login_required
@@ -68,7 +71,7 @@ def get_workbook(workbook_id: int):
         return internal_server_error_handler(f"Database error while fetching workbook: {str(e)}")
     except Exception as e:
         db.session.rollback()
-        return internal_server_error_handler(f"An unexpected error occurred: {str(e)}")
+        return internal_server_error_handler(f"An unexpected error occurred when fetching workbook: {str(e)}")
 
 
 def fetch_workbook_with_exercises(workbook_id: int):
@@ -107,7 +110,7 @@ def format_workbook_response(workbook: Workbook):
     answers = fetch_user_answers_for_exercises(exercise_ids)
     answer_map = {answer.exercise_id: answer for answer in answers}
 
-    answer_ids = [answer.answer_id for answer in answers]
+    answer_ids = [answer.answer_id if answer else None for answer in answers]
     lines = fetch_lines_for_answers(answer_ids)
     line_map = defaultdict(list)
     for line in lines:
@@ -122,7 +125,7 @@ def format_workbook_response(workbook: Workbook):
                 RULES: line.rules
             }
             for line in line_map.get(answer.answer_id, [])
-        ]
+        ] if answer else [{LINE_INDEX: 0, VARIABLE: "", RULES: ""}]
 
         exercise_data = {
             EXERCISE_ID: exercise.exercise_id,
@@ -192,7 +195,7 @@ def update_workbook(workbook_id: int):
         return internal_server_error_handler(f"An error occurred while updating data: {str(se)}")
     except Exception as e:
         db.session.rollback()
-        return internal_server_error_handler(f"An unexpected error occurred: {str(e)}")
+        return internal_server_error_handler(f"An unexpected error occurred while updating data: {str(e)}")
 
 
 @login_required
@@ -232,7 +235,7 @@ def add_workbook():
         return badrequest_handler(f"Validation Error: {ve}")
     except Exception as e:
         db.session.rollback()
-        return internal_server_error_handler(str(e))
+        return internal_server_error_handler(f"An unexpected error occurred while creating new workbook: {str(e)}")
 
 
 def create_workbook(workbook_data) -> Workbook:
@@ -293,3 +296,53 @@ def validate_line_data(data) -> None:
 def validate_data(data, required_keys: list[str], entity_name: str) -> None:
     if not all(key in data for key in required_keys):
         raise ValueError("Missing required fields in " + entity_name + " data")
+
+
+from .parser import get_grammar
+from .grammar import is_equivalent
+
+
+@bp.route("/workbooks/check/<int:workbook_id>", methods=["POST"])
+def check_workbook(workbook_id):
+    user_id = session[USER_ID]
+    admin_username = session[ADMIN_USERNAME]
+    try:
+        # Fetch the admin ID using the admin username
+        admin = db.session.execute(
+            db.select(User).filter_by(user_name=admin_username)
+        ).scalar_one_or_none()
+
+        if not admin:
+            return notfound_handler("Admin not found. No correct answers to use")
+    except SQLAlchemyError as e:
+        current_app.logger.error(e)
+        db.session.rollback()
+        return internal_server_error_handler("An error occurred when fetching admin")
+
+    admin_id = admin.user_id
+
+    try:
+        # Fetch all exercises in the workbook
+        exercise_ids = db.session.execute(
+            db.select(Exercise.exercise_id).filter_by(Exercise.workbook_id == workbook_id)
+        ).scalars().all()
+    except SQLAlchemyError as e:
+        current_app.logger.error(e)
+        db.session.rollback()
+        return internal_server_error_handler("An error occurred when fetching exercises")
+
+    results = {}
+    for exercise_id in exercise_ids:
+        try:
+            user_grammar = get_grammar(exercise_id, user_id)
+            admin_grammar = get_grammar(exercise_id, admin_id)
+            # Check equivalence
+            result = is_equivalent(user_grammar, admin_grammar)
+            results[exercise_id] = result
+
+            return jsonify(results), 200
+
+        except SQLAlchemyError as e:
+            current_app.logger.error(e)
+            db.session.rollback()
+        return internal_server_error_handler("An error occurred when fetching answers")

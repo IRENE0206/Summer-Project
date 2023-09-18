@@ -29,9 +29,10 @@ USER_NAME = "user_name"
 IS_ADMIN = "is_admin"
 SESSION_IDENTIFIER = "session_identifier"
 PASSWORD = "password"
+ADMIN_USERNAME = "admin_username"
 # Fetching the ADMIN_USERNAME from environment variable
-ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME")
-if not ADMIN_USERNAME:
+admin_username = os.environ.get("ADMIN_USERNAME")
+if not admin_username:
     raise ValueError("Missing ADMIN_USERNAME environment variable. This variable is required for the application.")
 
 
@@ -54,7 +55,7 @@ def register():
         return conflict_handler("Passwords do not match.")
 
     try:
-        if user_name == ADMIN_USERNAME:
+        if user_name == admin_username:
             role = UserRole.ADMIN
         else:
             role = UserRole.REGULAR
@@ -70,6 +71,7 @@ def register():
     session[USER_NAME] = user_name
     session[IS_ADMIN] = (role == UserRole.ADMIN)
     session[SESSION_IDENTIFIER] = generate_session_identifier()
+    session[ADMIN_USERNAME] = admin_username
     return succeed(
         "Registration successful",
         encrypted_session_identifier=encrypt_session_identifier(session[SESSION_IDENTIFIER])
@@ -97,6 +99,7 @@ def login():
     session[IS_ADMIN] = (user.role == UserRole.ADMIN)
     session[USER_NAME] = user.user_name
     session[SESSION_IDENTIFIER] = generate_session_identifier()
+    session[ADMIN_USERNAME] = admin_username
     return succeed(
         "Login successful",
         encrypted_session_identifier=encrypt_session_identifier(session[SESSION_IDENTIFIER])
@@ -157,6 +160,7 @@ def get_encryption_key() -> bytes:
     # If not found, generating a new one (not recommended for production)
     key = os.environ.get("FERNET_KEY")
     if not key:
+        current_app.logger.error("Missing FERNET_KEY environment variable.")
         raise ValueError("Missing FERNET_KEY environment variable. A proper key is required for encryption.")
     return key.encode("utf-8")
 
