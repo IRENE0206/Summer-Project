@@ -11,10 +11,10 @@ import "bootstrap/dist/css/bootstrap.css";
 import "katex/dist/katex.min.css";
 
 import type {Metadata} from "next";
+import {WEBSITE_NAME} from "@/utils/constants";
 
 export const metadata: Metadata = {
-    /*TODO:*/
-    title: "ONLINE WORKSHOP",
+    title: WEBSITE_NAME + "~Workbooks",
     description: "USEFUL TOOL FOR LL(1) GRAMMARS",
 };
 

@@ -1,11 +1,11 @@
 "use client";
 
 import {FormEvent, useState} from "react";
-import {useRouter} from "next/navigation";
 
 import {Button, Card, Col, Container, Form, InputGroup, Row, Tab, Tabs, Toast, ToastContainer} from "react-bootstrap";
 
-import {ENCRYPTED_SESSION_IDENTIFIER} from "@/utils/constants";
+import {ENCRYPTED_SESSION_IDENTIFIER, WEBSITE_NAME} from "@/utils/constants";
+import {useRouter} from "next/navigation";
 
 
 interface FormDataModel {
@@ -20,8 +20,6 @@ const REGISTER_USERNAME = "register_username";
 const FIRST_PASSWORD = "first_password";
 const REPEAT_PASSWORD = "repeat_password";
 
-const LOGIN_API = "/api/login";
-const REGISTER_API = "/api/register";
 
 export default function Index() {
     const router = useRouter();
@@ -42,17 +40,15 @@ export default function Index() {
             };
             if (!data.user_name || !data.password || !data.repeat_password) {
                 setToastMessage("All form fields are required");
-                console.log(toastMessage);
                 return;
             }
         } else {
             data = {
-                user_name: formData.get("login_username") as string,
-                password: formData.get("login_password") as string,
+                user_name: formData.get(LOGIN_USERNAME) as string,
+                password: formData.get(LOGIN_PASSWORD) as string,
             };
             if (!data.user_name || !data.password) {
                 setToastMessage("All form fields are required");
-                console.log(toastMessage);
                 return;
             }
         }
@@ -79,7 +75,6 @@ export default function Index() {
             console.error(toastMessage);
             return;
         }
-        console.log(ENCRYPTED_SESSION_IDENTIFIER + " " + encryptedSessionIdentifier);
 
         localStorage.setItem(
             ENCRYPTED_SESSION_IDENTIFIER,
@@ -89,11 +84,12 @@ export default function Index() {
     };
 
     const handleLoginSubmit = async (e: FormEvent<HTMLFormElement>) => {
+        const LOGIN_API = "/api/login";
         await handleFormSubmit(e, LOGIN_API);
-
     };
 
     const handleRegisterSubmit = async (e: FormEvent<HTMLFormElement>) => {
+        const REGISTER_API = "/api/register";
         await handleFormSubmit(e, REGISTER_API, true);
     };
 
@@ -108,7 +104,7 @@ export default function Index() {
 
                         <Card.Header className={"bg-dark shadow text-white rounded-top-5"}>
                             <Card.Title as={"h1"} className={"m-3 text-center"}>
-                                WEBSITE NAME {/* TODO: */}
+                                {WEBSITE_NAME}
                             </Card.Title>
                         </Card.Header>
 
@@ -138,7 +134,8 @@ export default function Index() {
                                     className={"p-3 shadow-lg bg-light rounded-bottom-5"}
                                 >
                                     <Form
-                                        method={"post"} onSubmit={handleLoginSubmit}
+                                        method={"post"}
+                                        onSubmit={handleLoginSubmit}
                                         className={"d-flex flex-column"}
                                     >
                                         <Form.Group className={"m-3"}>
@@ -147,7 +144,6 @@ export default function Index() {
                                                     <Form.Control
                                                         id={LOGIN_USERNAME}
                                                         name={LOGIN_USERNAME}
-                                                        type={"search"}
                                                         autoComplete={"username"}
                                                         required
                                                     />
@@ -167,7 +163,6 @@ export default function Index() {
                                                 />
                                             </Form.FloatingLabel>
                                         </Form.Group>
-
                                         <Button
                                             variant={"success"}
                                             size={"lg"}
@@ -175,6 +170,7 @@ export default function Index() {
                                             className={"m-3 rounded shadow"}
                                         >
                                             Sign In
+
                                         </Button>
 
                                     </Form>
@@ -187,7 +183,8 @@ export default function Index() {
                                 >
 
                                     <Form
-                                        method={"post"} onSubmit={handleRegisterSubmit}
+                                        method={"post"}
+                                        onSubmit={handleRegisterSubmit}
                                         className={"d-flex flex-column"}
                                     >
 
@@ -197,7 +194,6 @@ export default function Index() {
                                                     <Form.Control
                                                         id={REGISTER_USERNAME}
                                                         name={REGISTER_USERNAME}
-                                                        type={"search"}
                                                         autoComplete={"username"}
                                                         required
                                                     />
@@ -230,13 +226,14 @@ export default function Index() {
                                             </Form.FloatingLabel>
                                         </Form.Group>
 
-                                        <Button variant={"success"}
-                                            type={"submit"} size={"lg"}
+                                        <Button
+                                            variant={"success"}
+                                            type={"submit"}
+                                            size={"lg"}
                                             className={"m-3 shadow-sm rounded"}
                                         >
                                             Register
                                         </Button>
-
                                     </Form>
                                 </Tab>
                             </Tabs>

@@ -55,7 +55,6 @@ export default function WorkbooksNavBar() {
             variant={"pills"}
             navbarScroll={true}
             className={"w-100 h-100 p-0 m-0 d-flex flex-column"}
-            justify
         >
             {
                 workbooks.map((workbook) => (
@@ -65,7 +64,7 @@ export default function WorkbooksNavBar() {
                             variant={"outline-primary"}
                             type={"button"}
                             size={"lg"}
-                            className={"w-100 rounded-5 text-center shadow-sm"}
+                            className={"w-100 my-1 rounded-5 text-center shadow-sm"}
                         >
                             {workbook["workbook_name"]}
                         </Button>

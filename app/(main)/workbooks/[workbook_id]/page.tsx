@@ -8,19 +8,29 @@ import {useParams, useRouter} from "next/navigation";
 import Exercise from "@/components/Exercise";
 
 export default function EditWorkbook() {
-    const [workbookId, setWorkbookId] = useState(useParams()["workbook_id"]);
-    const isNewWorkbook = (workbookId === "new");
+    const router = useRouter();
     const userInfo = useContext(UserInfoContext);
-    const workbookAPI = `/api/workbooks/${workbookId}`;
-    const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [isSaving, setIsSaving] = useState<boolean>(false);
-    const [isChecking, setIsChecking] = useState<boolean>(false);
-    const [feedbacks, setFeedbacks] = useState<{ [key: number]: string } | null>(null);
+    const [workbookId, setWorkbookId] = useState(useParams()["workbook_id"]);
+    const [feedbacks, setFeedbacks] = useState<{ [key: string]: string } | null>(null);
     const [workbookName, setWorkbookName] = useState<string>("");
     const [releaseDate, setReleaseDate] = useState("");
     const [releaseTime, setReleaseTime] = useState("");
-    const router = useRouter();
+    const [exercises, setExercises] = useState<ExerciseDataInterface[]>([
+        {
+            exercise_id: 1, exercise_index: 1, exercise_number: "1",
+            exercise_content: "",
+            lines: [{line_index: 0, variable: "", rules: ""}]
+        },
+    ]);
+    const isNewWorkbook = (workbookId === "new");
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [isSaving, setIsSaving] = useState<boolean>(false);
+    const [isChecking, setIsChecking] = useState<boolean>(false);
+
     const [showExitModal, setShowExitModal] = useState(false);
+
+    const [showToast, setShowToast] = useState(false);
+
     useEffect(() => {
         const handleExit = (event: BeforeUnloadEvent) => {
             event.preventDefault();
@@ -33,31 +43,21 @@ export default function EditWorkbook() {
             window.removeEventListener("beforeunload", handleExit);
         };
     }, [isSaving]);
-    const [exercises, setExercises] = useState<ExerciseDataInterface[]>([
-        {
-            exercise_id: 1, exercise_index: 1, exercise_number: "1",
-            exercise_content: "",
-            lines: [{line_index: 0, variable: "", rules: ""}]
-        },
-    ]);
-    const [showToast, setShowToast] = useState(false);
 
     // Fetch initial data
     useEffect(() => {
         const fetchInitialData = async () => {
             setIsLoading(true);
             try {
-                console.log("before fetch");
+                const workbookAPI = `/api/workbooks/${workbookId}`;
                 const response = await fetchAPI(workbookAPI, {method: "GET"});
-                console.log("after fetch");
                 if (response.success) {
                     setWorkbookName((response.data as WorkbookDataInterface).workbook_name);
                     // Convert to JavaScript Date object first
                     const releaseDateTime = new Date((response.data as WorkbookDataInterface).release_date);
 
-                    // Convert to string in the format YYYY-MM-DDTHH:MM:SS
+                    // Convert to string in the format "YYYY-MM-DDTHH:MM:SS"
                     const formattedReleaseDateTime = releaseDateTime.toISOString().split(".")[0].split("T");
-                    console.log("formattedReleaseDateTime" + formattedReleaseDateTime);
                     const formattedReleaseDate = formattedReleaseDateTime[0];
                     const formattedReleaseTime = formattedReleaseDateTime[1];
                     setReleaseDate(formattedReleaseDate);
@@ -74,34 +74,48 @@ export default function EditWorkbook() {
         if (isNewWorkbook) {
             return;
         }
-        fetchInitialData().catch(e => console.log(e));
+        fetchInitialData().catch(e => console.error(e));
     }, []);
 
 
     // Update data to the backend
     const updateData = async () => {
-        console.log(`${releaseDate}T${releaseTime}`);
         const updatedWorkbookData: WorkbookDataInterface = {
             workbook_name: workbookName,
             release_date: `${releaseDate}T${releaseTime}`,
             exercises: exercises,
         };
-
         const updateApi = (isNewWorkbook ? "/api/workbooks/new" : `/api/workbooks/update/${workbookId}`);
         setIsSaving(true);
         try {
-            const response = await fetchAPI(updateApi, {
-                method: "POST",
-                body: updatedWorkbookData,
-            });
-            if (response.success) {
-                setShowToast(true);
-                if (isNewWorkbook) {
-                    setWorkbookId(((response.data as { workbook_id: number }).workbook_id).toString());
+            if (userInfo?.is_admin) {
+                const response = await fetchAPI(updateApi, {
+                    method: "POST",
+                    body: updatedWorkbookData,
+                });
+                if (response.success) {
+                    setShowToast(true);
+                    if (isNewWorkbook) {
+                        setWorkbookId(((response.data as { workbook_id: number }).workbook_id).toString());
+                    }
+                } else {
+                    console.error(response.errorMessage || "An error occurred.");
                 }
-            } else {
-                console.log("hey, something went wrong");
-                console.error(response.errorMessage || "An error occurred.");
+            } else if (userInfo) {
+                const answersOnly = updatedWorkbookData.exercises.map(exercise => ({
+                    exercise_id: exercise.exercise_id,
+                    lines: exercise.lines
+                }));
+                const response = await fetchAPI(updateApi, {
+                    method: "POST",
+                    body: answersOnly,
+                });
+                if (response.success) {
+                    setShowToast(true);
+                } else {
+                    console.error(response.errorMessage || "An error occurred.");
+                }
+
             }
         } catch (error) {
             console.error("An error occurred while updating data.", error);
@@ -114,12 +128,11 @@ export default function EditWorkbook() {
         await updateData();
         setIsChecking(true);
         try {
-            console.log("before fetch");
             const response = await fetchAPI(feedbackAPI, {method: "POST"});
-            console.log("after fetch");
             if (response.success) {
-                setFeedbacks(response.data as { [key: number]: string });
+                setFeedbacks(response.data as { [key: string]: string });
             } else {
+                console.error("WRONG WRONG WRONG");
                 console.error(response.errorMessage || "An error occurred.");
             }
         } catch (error) {
@@ -203,7 +216,7 @@ export default function EditWorkbook() {
     }
     return (
         <Container fluid
-            className={"d-flex flex-column align-items-center justify-content-center w-100 p-0 m-0 ms-md-5 ps-md-5"}
+            className={"d-flex flex-column align-items-center justify-content-center"}
         >
             <ToastContainer position={"middle-center"}>
                 <Toast
@@ -212,6 +225,7 @@ export default function EditWorkbook() {
                         isNewWorkbook && router.push(`/workbooks/${workbookId}`);
                     }}
                     show={showToast}
+                    bg={"info"}
                 >
                     <Toast.Header>
                         <strong className={"mr-auto"}>Notification</strong>
@@ -222,26 +236,41 @@ export default function EditWorkbook() {
                 </Toast>
             </ToastContainer>
 
-            <Toast show={showExitModal} onClose={() => setShowExitModal(false)}>
-                <Toast.Header closeButton>
-                    Unsaved Changes
-                </Toast.Header>
-                <Toast.Body>
-                    <p>
-                        You have unsaved changes. Do you want to leave without saving?
-                    </p>
-
-                    <Button variant="secondary" onClick={() => setShowExitModal(false)}>
-                        Do not Save
-                    </Button>
-                    <Button variant="primary" onClick={async () => {
-                        await updateData();
-                        setShowExitModal(false);
-                    }}>
-                        Save All
-                    </Button>
-                </Toast.Body>
-            </Toast>
+            <ToastContainer position={"middle-center"}>
+                <Toast show={showExitModal} onClose={() => setShowExitModal(false)} bg={"warning"}>
+                    <Toast.Header closeButton>
+                        Unsaved Changes
+                    </Toast.Header>
+                    <Toast.Body>
+                        <Row>
+                            <Col>
+                                <p>
+                                    You have unsaved changes. Do you want to leave without saving?
+                                </p>
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col>
+                                <Button variant={"secondary"} onClick={() => setShowExitModal(false)}
+                                    className={"text-start"}>
+                                    Do not Save
+                                </Button>
+                            </Col>
+                            <Col>
+                                <Button variant={"primary"}
+                                    onClick={async () => {
+                                        await updateData();
+                                        setShowExitModal(false);
+                                    }}
+                                    className={"text-end"}
+                                >
+                                    Save All
+                                </Button>
+                            </Col>
+                        </Row>
+                    </Toast.Body>
+                </Toast>
+            </ToastContainer>
 
             <Card
                 className={"d-flex flex-column justify-content-center align-items-center ms-md-5 px-3 rounded-5 shadow-lg"}>
@@ -302,9 +331,7 @@ export default function EditWorkbook() {
                                                 </Form.FloatingLabel>
                                             </Form.Group>
                                         </Col>
-
                                     </Row>
-
                                 </Card.Body>
                             </Card>
 
@@ -325,7 +352,8 @@ export default function EditWorkbook() {
                                         onDelete={() => handleDeleteQA(exercise.exercise_id)}
                                         isDeleteDisabled={exercises.length === 1}
                                     />
-                                    {userInfo.is_admin && feedbacks && <Alert>feedbacks?[exercise.exercise_id]</Alert>}
+                                    {userInfo.is_admin && feedbacks &&
+                                        <Alert>{feedbacks["${exercise.exercise_id}"]}</Alert>}
                                 </Container>
                             ))}
                             <Row className={"d-flex flex-row"}>
@@ -338,11 +366,11 @@ export default function EditWorkbook() {
                                             size={"lg"}
                                             className={"shadow rounded-5"}
                                         >
-                                            Add Q&A
+                                            Add Exercise
                                         </Button>
                                     </Col>
                                 }
-                                <Col>
+                                <Col className={userInfo.is_admin ? ("text-end") : ("text-start")}>
                                     <Button
                                         variant={"outline-primary"}
                                         type={"submit"}
@@ -356,7 +384,7 @@ export default function EditWorkbook() {
                                 {!userInfo.is_admin &&
                                     <Col className={"text-end"}>
                                         <Button
-                                            variant={"outline-info"}
+                                            variant={"outline-warning"}
                                             type={"button"}
                                             size={"lg"}
                                             className={"shadow rounded-5"}
@@ -365,13 +393,9 @@ export default function EditWorkbook() {
                                             {isChecking ? "Checking..." : "Check Answers"}
                                         </Button>
                                     </Col>
-
                                 }
-
                             </Row>
-
                         </Form>
-
                     }
                 </Card.Body>
             </Card>

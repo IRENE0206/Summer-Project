@@ -44,6 +44,7 @@ export const useUser = (): UserInterface => {
 
         // Run the authentication
         authenticate().catch(e => {
+            console.log(e);
             setUser({pass_auth: false, user_info: null, err_msg: `An error occurred: ${e.message}`});
         });
     }, []);

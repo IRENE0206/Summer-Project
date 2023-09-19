@@ -1,3 +1,3 @@
 export const ENCRYPTED_SESSION_IDENTIFIER = "session_identifier";
 
-export const WEBSITE_NAME = "WEBSITE NAME"; // TODO
+export const WEBSITE_NAME = "GrammarChecker";

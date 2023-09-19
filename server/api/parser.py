@@ -28,7 +28,7 @@ def get_grammar(exercise_id: int, user_id: int) -> Grammar:
     return process_lines(result)
 
 
-def process_lines(lines) -> Grammar:
+def process_lines(lines: list[Line]) -> Grammar:
     non_terminal_strings = set([line.variable.strip() for line in lines])
     # map each distinct non_terminal string with a NonTerminal instance
     non_terminal_dict = {non_terminal_string: NonTerminal() for non_terminal_string in non_terminal_strings}

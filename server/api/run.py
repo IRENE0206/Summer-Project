@@ -150,6 +150,38 @@ FEEDBACK = "feedback"
 EXERCISES = "exercises"
 
 
+def upsert_model(model, primary_key, primary_key_value, update_values):
+    existing_item = db.session.execute(db.select(model).where(primary_key == primary_key_value)).scalar()
+    if existing_item:
+        update_query = db.update(model).where(primary_key == primary_key_value).values(**update_values)
+        db.session.execute(update_query)
+        return existing_item  # Return the existing item
+    else:
+        new_item = model(**update_values)
+        db.session.add(new_item)
+        return new_item  # Return the newly created item
+
+
+def delete_absent_lines(answer_id, received_line_ids):
+    existing_line_ids = [result.line_id for result in
+                         db.session.execute(db.select(Line.line_id).where(Line.answer_id == answer_id))]
+    lines_to_delete = set(existing_line_ids) - set(received_line_ids)
+    for line_id in lines_to_delete:
+        line = db.session.execute(db.select(Line).where(Line.line_id == line_id)).scalar()
+        if line:
+            db.session.delete(line)
+
+
+def delete_absent_exercises(workbook_id, received_exercise_ids):
+    existing_exercise_ids = [result.exercise_id for result in db.session.execute(
+        db.select(Exercise.exercise_id).where(Exercise.workbook_id == workbook_id))]
+    exercises_to_delete = set(existing_exercise_ids) - set(received_exercise_ids)
+    for exercise_id in exercises_to_delete:
+        exercise = db.session.execute(db.select(Exercise).where(Exercise.exercise_id == exercise_id)).scalar()
+        if exercise:
+            db.session.delete(exercise)
+
+
 @bp.route("/workbooks/update/<int:workbook_id>", methods=["POST"])
 @login_required
 def update_workbook(workbook_id: int):
@@ -158,32 +190,38 @@ def update_workbook(workbook_id: int):
         return badrequest_handler("Invalid data format.")
 
     try:
-        validate_workbook_data(data)
-        workbook_name = data[WORKBOOK_NAME]
-        release_date = datetime.strptime(data[RELEASE_DATE], TIME_FORMAT)
+        received_exercise_ids = []
+
+        if session[IS_ADMIN]:
+            validate_workbook_data(data)
+            workbook_name = data[WORKBOOK_NAME]
+            release_date = datetime.strptime(data[RELEASE_DATE], TIME_FORMAT)
+            upsert_model(Workbook, Workbook.workbook_id, workbook_id,
+                         {'workbook_id': workbook_id, 'workbook_name': workbook_name, 'release_date': release_date})
+
+            exercises_data = data.get(EXERCISES, [])
+            for exercise_data in exercises_data:
+                validate_exercise_data(exercise_data)
+                exercise_update_data = {k: v for k, v in exercise_data.items() if k != LINES}
+                upsert_model(Exercise, Exercise.exercise_id, exercise_data[EXERCISE_ID], exercise_update_data)
+                received_exercise_ids.append(exercise_data[EXERCISE_ID])
+
+            delete_absent_exercises(workbook_id, received_exercise_ids)
+
         exercises_data = data.get(EXERCISES, [])
-
-        # Update the workbook
-        workbook_query = db.update(Workbook).where(Workbook.workbook_id == workbook_id).values(
-            workbook_name=workbook_name, release_date=release_date)
-        db.session.execute(workbook_query)
-
-        # Update exercises associated with this workbook
         for exercise_data in exercises_data:
-            validate_exercise_data(exercise_data)
-            exercise_query = db.update(Exercise).where(Exercise.exercise_id == exercise_data[EXERCISE_ID]).values(
-                exercise_index=exercise_data[EXERCISE_INDEX],
-                exercise_number=exercise_data[EXERCISE_NUMBER],
-                exercise_content=exercise_data[EXERCISE_CONTENT]
-            )
-            db.session.execute(exercise_query)
+            answer = upsert_model(Answer, Answer.exercise_id, exercise_data[EXERCISE_ID],
+                                  {'exercise_id': exercise_data[EXERCISE_ID], 'feedback': ''})
+            if not answer:
+                raise ValueError("Unable to fetch or create an Answer for the given Exercise")
 
+            received_line_ids = []
             for line_data in exercise_data[LINES]:
-                line_query = db.update(Line).where(Line.line_id == line_data[LINE_INDEX]).values(
-                    variable=line_data[VARIABLE],
-                    rules=line_data[RULES]
-                )
-                db.session.execute(line_query)
+                line_data['answer_id'] = answer.answer_id
+                upsert_model(Line, Line.line_id, line_data[LINE_INDEX], line_data)
+                received_line_ids.append(line_data[LINE_INDEX])
+
+            delete_absent_lines(answer.answer_id, received_line_ids)
 
         db.session.commit()
         return succeed("Workbook updated successfully.")
@@ -303,7 +341,7 @@ from .grammar import is_equivalent
 
 
 @bp.route("/workbooks/check/<int:workbook_id>", methods=["POST"])
-def check_workbook(workbook_id):
+def check_workbook(workbook_id: int):
     user_id = session[USER_ID]
     admin_username = session[ADMIN_USERNAME]
     try:
@@ -318,6 +356,9 @@ def check_workbook(workbook_id):
         current_app.logger.error(e)
         db.session.rollback()
         return internal_server_error_handler("An error occurred when fetching admin")
+    except Exception as e:
+        db.session.rollback()
+        return internal_server_error_handler(f"An unexpected error occurred while fetching admin: {str(e)}")
 
     admin_id = admin.user_id
 
@@ -330,6 +371,9 @@ def check_workbook(workbook_id):
         current_app.logger.error(e)
         db.session.rollback()
         return internal_server_error_handler("An error occurred when fetching exercises")
+    except Exception as e:
+        db.session.rollback()
+        return internal_server_error_handler(f"An unexpected error occurred while fetching exercises: {str(e)}")
 
     results = {}
     for exercise_id in exercise_ids:
@@ -339,10 +383,11 @@ def check_workbook(workbook_id):
             # Check equivalence
             result = is_equivalent(user_grammar, admin_grammar)
             results[exercise_id] = result
-
-            return jsonify(results), 200
-
         except SQLAlchemyError as e:
             current_app.logger.error(e)
             db.session.rollback()
-        return internal_server_error_handler("An error occurred when fetching answers")
+            return internal_server_error_handler("An error occurred when fetching answers")
+        except Exception as e:
+            db.session.rollback()
+            return internal_server_error_handler(f"An unexpected error occurred while getting feedback: {str(e)}")
+    return jsonify(results), 200

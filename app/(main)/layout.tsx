@@ -19,7 +19,6 @@ export default function MainLayout({children}: { children: React.ReactNode }) {
 
     // Authentication & User Information Loading
     if (user?.pass_auth === null || user?.user_info === null) {
-        console.log(user?.user_info === null ? "Fetching user information..." : "Authenticating");
         return <CenteredSpinner/>;
     }
 
