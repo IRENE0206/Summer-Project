@@ -216,7 +216,7 @@ export default function EditWorkbook() {
     }
     return (
         <Container fluid
-            className={"d-flex flex-column align-items-center justify-content-center"}
+                   className={"d-flex flex-column align-items-center justify-content-center"}
         >
             <ToastContainer position={"middle-center"}>
                 <Toast
@@ -252,17 +252,17 @@ export default function EditWorkbook() {
                         <Row>
                             <Col>
                                 <Button variant={"secondary"} onClick={() => setShowExitModal(false)}
-                                    className={"text-start"}>
+                                        className={"text-start"}>
                                     Do not Save
                                 </Button>
                             </Col>
                             <Col>
                                 <Button variant={"primary"}
-                                    onClick={async () => {
-                                        await updateData();
-                                        setShowExitModal(false);
-                                    }}
-                                    className={"text-end"}
+                                        onClick={async () => {
+                                            await updateData();
+                                            setShowExitModal(false);
+                                        }}
+                                        className={"text-end"}
                                 >
                                     Save All
                                 </Button>
@@ -273,12 +273,13 @@ export default function EditWorkbook() {
             </ToastContainer>
 
             <Card
-                className={"d-flex flex-column justify-content-center align-items-center ms-md-5 px-3 rounded-5 shadow-lg"}>
-                <Card.Body className={"d-flex flex-column justify-content-center align-items-center rounded-5 p-0 m-3"}>
+                className={"p-3 w-100 d-flex flex-column justify-content-center align-items-center rounded-5 shadow-lg"}>
+                <Card.Body
+                    className={"w-100 d-flex flex-column justify-content-center align-items-center rounded-5"}>
                     {isLoading ? (<Spinner>Loading</Spinner>) :
-                        <Form method={"post"} onSubmit={handleSave} className={"p-0 m-0"}>
+                        <Form method={"post"} onSubmit={handleSave} className={"w-100 h-100 p-0 m-0"}>
 
-                            <Card border={"primary"} className={"my-3 shadow rounded-5"}>
+                            <Card border={"primary"} className={"w-100 shadow rounded-5 mb-3"}>
                                 <Card.Body className={"d-grid"}>
                                     <Row>
                                         <Col>
@@ -298,7 +299,7 @@ export default function EditWorkbook() {
                                         </Col>
                                     </Row>
 
-                                    <Row className={"d-flex flex-row"}>
+                                    <Row>
 
                                         <Col className={"mx-0 pe-0"}>
                                             <Form.Group>
@@ -356,7 +357,7 @@ export default function EditWorkbook() {
                                         <Alert>{feedbacks["${exercise.exercise_id}"]}</Alert>}
                                 </Container>
                             ))}
-                            <Row className={"d-flex flex-row"}>
+                            <Row className={"d-flex flex-row mt-3"}>
                                 {userInfo.is_admin &&
                                     <Col className={"text-start"}>
                                         <Button

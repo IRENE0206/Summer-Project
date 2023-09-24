@@ -25,9 +25,7 @@ export default function RootLayout({
 }) {
     return (
         <html lang={"en-GB"}>
-            <body
-                className={"bg-primary-subtle d-grid align-items-center justify-content-center"}
-            >{children}</body>
+        <body className={"bg-primary-subtle"}>{children}</body>
         </html>
     );
 }

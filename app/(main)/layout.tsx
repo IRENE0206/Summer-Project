@@ -34,8 +34,8 @@ export default function MainLayout({children}: { children: React.ReactNode }) {
 
     return (
         <Container fluid className={"d-grid p-0 m-0"}>
-            <Row className={"d-grid w-100 py-3 px-3 mx-0"}>
-                <Col className={"d-grid p-0 m-0"}>
+            <Row className={"w-100 py-3"}>
+                <Col>
                     <header>
                         <Navbar
                             bg={"dark"}
@@ -52,17 +52,17 @@ export default function MainLayout({children}: { children: React.ReactNode }) {
                 </Col>
             </Row>
 
-            <Row className={"d-grid w-100 mt-5 px-3 mx-0"}>
+            <Row className={"w-100 py-5"}>
                 <UserInfoContext.Provider value={user.user_info}>
-                    <Col className={"d-none d-md-flex flex-column m-0 mx-md-5 p-0 px-md-5"}>
+                    <Col md={3} className={"d-none d-md-flex flex-column"}>
                         <aside className={"position-fixed start-0 top-0 pt-5 h-100 my-0"}>
                             <OffCanvasContext.Provider value={{showOffCanvas, handleShowOffCanvas}}>
                                 <SideBar/>
                             </OffCanvasContext.Provider>
                         </aside>
                     </Col>
-                    <Col className={"d-grid ps-md-5 h-100 ms-md-5"}>
-                        <main className={"d-grid p-3"}>{children}</main>
+                    <Col>
+                        <main>{children}</main>
                     </Col>
                 </UserInfoContext.Provider>
             </Row>
