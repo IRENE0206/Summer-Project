@@ -1,11 +1,12 @@
 "use client";
 import React, {useContext, useEffect, useState} from "react";
-import {Alert, Button, Card, Col, Container, Form, Row, Spinner, Toast, ToastContainer} from "react-bootstrap";
+import {Alert, Button, Card, Col, Container, Form, Modal, Row, Spinner, Toast, ToastContainer} from "react-bootstrap";
 import {ExerciseDataInterface, Line, WorkbookDataInterface} from "@/interfaces/Interfaces";
 import UserInfoContext from "@/utils/UserInfoContext";
 import {fetchAPI} from "@/utils/fetchAPI";
 import {useParams, useRouter} from "next/navigation";
 import Exercise from "@/components/Exercise";
+import WorkbookInfo from "@/components/WorkbookInfo";
 
 export default function EditWorkbook() {
     const router = useRouter();
@@ -19,7 +20,7 @@ export default function EditWorkbook() {
         {
             exercise_id: 1, exercise_index: 1, exercise_number: "1",
             exercise_content: "",
-            lines: [{line_index: 0, variable: "", rules: ""}]
+            lines: [{line_id: null, line_index: 0, variable: "", rules: ""}]
         },
     ]);
     const isNewWorkbook = (workbookId === "new");
@@ -85,7 +86,8 @@ export default function EditWorkbook() {
             release_date: `${releaseDate}T${releaseTime}`,
             exercises: exercises,
         };
-        const updateApi = (isNewWorkbook ? "/api/workbooks/new" : `/api/workbooks/update/${workbookId}`);
+        console.log(updatedWorkbookData);
+        const updateApi = (isNewWorkbook ? "/api/workbooks/update" : `/api/workbooks/update/${workbookId}`);
         setIsSaving(true);
         try {
             if (userInfo?.is_admin) {
@@ -106,14 +108,23 @@ export default function EditWorkbook() {
                     exercise_id: exercise.exercise_id,
                     lines: exercise.lines
                 }));
+                const dataToSend = {
+                    exercises: answersOnly
+                };
+
+                console.log("Sending data:", dataToSend);
+
                 const response = await fetchAPI(updateApi, {
                     method: "POST",
-                    body: answersOnly,
+                    body: dataToSend,
                 });
-                if (response.success) {
+                const updatedWorkbook = await fetchAPI(`/api/workbooks/${workbookId}`, {method: "GET"});
+
+                if (response.success && updatedWorkbook.success) {
+                    setExercises((updatedWorkbook.data as WorkbookDataInterface).exercises);
                     setShowToast(true);
                 } else {
-                    console.error(response.errorMessage || "An error occurred.");
+                    console.error(response.errorMessage || updatedWorkbook.errorMessage || "An error occurred.");
                 }
 
             }
@@ -163,7 +174,7 @@ export default function EditWorkbook() {
                 exercise_index: newExerciseNum,
                 exercise_number: newExerciseNum.toString(),
                 exercise_content: "",
-                lines: [{line_index: 0, variable: "", rules: ""}],
+                lines: [{line_id: null, line_index: 0, variable: "", rules: ""}],
             },
         ]);
     };
@@ -225,7 +236,9 @@ export default function EditWorkbook() {
                         isNewWorkbook && router.push(`/workbooks/${workbookId}`);
                     }}
                     show={showToast}
-                    bg={"info"}
+                    bg={"success"}
+                    delay={5000} // Delay of 5 seconds before auto-hide
+                    autohide
                 >
                     <Toast.Header>
                         <strong className={"mr-auto"}>Notification</strong>
@@ -236,41 +249,25 @@ export default function EditWorkbook() {
                 </Toast>
             </ToastContainer>
 
-            <ToastContainer position={"middle-center"}>
-                <Toast show={showExitModal} onClose={() => setShowExitModal(false)} bg={"warning"}>
-                    <Toast.Header closeButton>
-                        Unsaved Changes
-                    </Toast.Header>
-                    <Toast.Body>
-                        <Row>
-                            <Col>
-                                <p>
-                                    You have unsaved changes. Do you want to leave without saving?
-                                </p>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col>
-                                <Button variant={"secondary"} onClick={() => setShowExitModal(false)}
-                                        className={"text-start"}>
-                                    Do not Save
-                                </Button>
-                            </Col>
-                            <Col>
-                                <Button variant={"primary"}
-                                        onClick={async () => {
-                                            await updateData();
-                                            setShowExitModal(false);
-                                        }}
-                                        className={"text-end"}
-                                >
-                                    Save All
-                                </Button>
-                            </Col>
-                        </Row>
-                    </Toast.Body>
-                </Toast>
-            </ToastContainer>
+            <Modal show={showExitModal} onHide={() => setShowExitModal(false)}>
+                <Modal.Header closeButton>
+                    <Modal.Title>Unsaved Changes</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    You have unsaved changes. Do you want to leave without saving?
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant={"secondary"} onClick={() => setShowExitModal(false)}>
+                        Do not Save
+                    </Button>
+                    <Button variant={"primary"} onClick={async () => {
+                        await updateData();
+                        setShowExitModal(false);
+                    }}>
+                        Save All
+                    </Button>
+                </Modal.Footer>
+            </Modal>
 
             <Card
                 className={"p-3 w-100 d-flex flex-column justify-content-center align-items-center rounded-5 shadow-lg"}>
@@ -278,63 +275,15 @@ export default function EditWorkbook() {
                     className={"w-100 d-flex flex-column justify-content-center align-items-center rounded-5"}>
                     {isLoading ? (<Spinner>Loading</Spinner>) :
                         <Form method={"post"} onSubmit={handleSave} className={"w-100 h-100 p-0 m-0"}>
-
-                            <Card border={"primary"} className={"w-100 shadow rounded-5 mb-3"}>
-                                <Card.Body className={"d-grid"}>
-                                    <Row>
-                                        <Col>
-                                            <Form.Group>
-                                                <Form.FloatingLabel
-                                                    label={"Workbook Name: "}
-                                                >
-                                                    <Form.Control
-                                                        className={"border-secondary-subtle shadow" + (!userInfo?.is_admin && " bg-secondary-subtle")}
-                                                        type={"text"}
-                                                        value={workbookName}
-                                                        onChange={(e) => setWorkbookName(e.target.value)}
-                                                        readOnly={!userInfo.is_admin}
-                                                    />
-                                                </Form.FloatingLabel>
-                                            </Form.Group>
-                                        </Col>
-                                    </Row>
-
-                                    <Row>
-
-                                        <Col className={"mx-0 pe-0"}>
-                                            <Form.Group>
-                                                <Form.FloatingLabel
-                                                    label={"Release Date: "}
-                                                >
-                                                    <Form.Control
-                                                        className={"mx-0 border-secondary-subtle shadow" + (!userInfo?.is_admin && " bg-secondary-subtle")}
-                                                        type={"date"}
-                                                        value={releaseDate}
-                                                        onChange={(e) => setReleaseDate(e.target.value)}
-                                                        readOnly={!userInfo.is_admin}
-                                                    />
-                                                </Form.FloatingLabel>
-                                            </Form.Group>
-                                        </Col>
-
-                                        <Col className={"mx-0 ps-0"}>
-                                            <Form.Group>
-                                                <Form.FloatingLabel
-                                                    label={"Release Time: "}
-                                                >
-                                                    <Form.Control
-                                                        className={"mx-0 border-secondary-subtle shadow" + (!userInfo?.is_admin && " bg-secondary-subtle")}
-                                                        type={"time"}
-                                                        value={releaseTime}
-                                                        onChange={(e) => setReleaseTime(e.target.value + ":00")}
-                                                        readOnly={!userInfo.is_admin}
-                                                    />
-                                                </Form.FloatingLabel>
-                                            </Form.Group>
-                                        </Col>
-                                    </Row>
-                                </Card.Body>
-                            </Card>
+                            <WorkbookInfo
+                                userInfo={userInfo}
+                                workbookName={workbookName}
+                                setWorkbookName={setWorkbookName}
+                                releaseDate={releaseDate}
+                                setReleaseDate={setReleaseDate}
+                                releaseTime={releaseTime}
+                                setReleaseTime={setReleaseTime}
+                            />
 
                             {exercises.map((exercise) => (
                                 <Container key={exercise.exercise_id} className={"d-flex flex-column m-0 p-0"}>
@@ -354,7 +303,7 @@ export default function EditWorkbook() {
                                         isDeleteDisabled={exercises.length === 1}
                                     />
                                     {userInfo.is_admin && feedbacks &&
-                                        <Alert>{feedbacks["${exercise.exercise_id}"]}</Alert>}
+                                        <Alert variant={"info"}>{feedbacks["${exercise.exercise_id}"]}</Alert>}
                                 </Container>
                             ))}
                             <Row className={"d-flex flex-row mt-3"}>

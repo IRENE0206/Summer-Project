@@ -1,39 +1,58 @@
 "use client";
-import {Accordion, Card, Container} from "react-bootstrap";
+import {Card, Container, ListGroup} from "react-bootstrap";
 import userInfoContext from "@/utils/UserInfoContext";
 import {useContext} from "react";
 
 export default function HomePage() {
     const userInfo = useContext(userInfoContext);
+
     return (
-        <Container fluid className={"d-flex flex-column"}>
-            <Card className={"rounded-5 m-3 shadow-lg"}>
+        <Container fluid className={"d-flex flex-column align-items-center m-3"}>
+            <Card className={"rounded-5 shadow-lg w-75"}>
                 <Card.Header className={"p-3 rounded-5 shadow"}>
-                    <Card.Title className={"m-3"}>About This Website Application</Card.Title>
+                    <Card.Title className={"text-center"}>About This Website Application</Card.Title>
                 </Card.Header>
 
                 <Card.Body className={"m-3"}>
-                    <Card.Subtitle>Usage</Card.Subtitle>
-                    {userInfo?.is_admin && (
-                        <Card.Text>
-                            To input math equations in question, please write it in LaTex.
-                        </Card.Text>
-                    )}
-                    <Accordion defaultActiveKey={"0"} className={"shadow"} alwaysOpen>
-                        <Accordion.Item eventKey={"0"}>
-                            <Accordion.Header>
-                                Grammar Inputs
-                            </Accordion.Header>
-                            <Accordion.Body>
-                                <p>
-                                    Input plain text in the answer sections.
-                                </p>
-                                <p>
-                                    Use one single capital letter for non-terminals.
-                                </p>
-                            </Accordion.Body>
-                        </Accordion.Item>
-                    </Accordion>
+                    {/* Display information based on user role */}
+                    <Card className={"mb-3"}>
+                        <Card.Body>
+                            {userInfo?.is_admin ? (
+                                <>
+                                    <Card.Title>Admin Users</Card.Title>
+                                    <ListGroup variant="flush">
+                                        <ListGroup.Item>Add/Delete workbooks</ListGroup.Item>
+                                        <ListGroup.Item>Edit workbook release dates</ListGroup.Item>
+                                        <ListGroup.Item>Add/Delete/Edit questions and answers of
+                                            exercises</ListGroup.Item>
+                                    </ListGroup>
+                                    <Card.Text>To input math equations in questions, please use LaTeX.</Card.Text>
+                                </>
+                            ) : (
+                                <>
+                                    <Card.Title>Regular Users</Card.Title>
+                                    <ListGroup variant="flush">
+                                        <ListGroup.Item>View released workbooks</ListGroup.Item>
+                                        <ListGroup.Item>View questions of exercises in the
+                                            workbooks</ListGroup.Item>
+                                        <ListGroup.Item>Edit your own answers and submit for
+                                            feedback</ListGroup.Item>
+                                    </ListGroup>
+                                </>
+                            )}
+                        </Card.Body>
+                    </Card>
+
+                    {/* Use ListGroup for Grammar Inputs */}
+                    <Card className={"mb-3"}>
+                        <Card.Body>
+                            <Card.Title>Grammar Inputs</Card.Title>
+                            <ListGroup variant={"flush"}>
+                                <ListGroup.Item>Input plain text in the answer sections.</ListGroup.Item>
+                                <ListGroup.Item>Use a single capital letter for non-terminals.</ListGroup.Item>
+                            </ListGroup>
+                        </Card.Body>
+                    </Card>
                 </Card.Body>
             </Card>
         </Container>

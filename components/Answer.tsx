@@ -32,7 +32,7 @@ export default function Answer({
     const handleAddLine = () => {
         const newLines = [
             ...answerLines,
-            {line_index: answerLines.length, variable: "", rules: ""},
+            {line_id: null, line_index: answerLines.length, variable: "", rules: ""},
         ];
         onChange(updateLineIndexes(newLines));
     };
@@ -108,7 +108,7 @@ export default function Answer({
 
                         {answerLines.map((line: Line, index: number) => (
                             <Row key={line.line_index}
-                                className={"shadow-sm py-1 px-0 align-items-center text-center"}>
+                                 className={"shadow-sm py-1 px-0 align-items-center text-center"}>
                                 <InputGroup className={"align-items-center text-center p-0"}>
 
                                     <Col sm={1}>

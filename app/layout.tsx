@@ -7,7 +7,7 @@ import React from "react";
  * External stylesheets must be directly imported from a npm package or downloaded and co-located with your codebase.
  * You cannot use <link rel="stylesheet" />
  */
-import "bootstrap/dist/css/bootstrap.css";
+import "bootstrap/dist/css/bootstrap.min.css";
 import "katex/dist/katex.min.css";
 
 import type {Metadata} from "next";

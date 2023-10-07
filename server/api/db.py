@@ -34,7 +34,7 @@ class Workbook(db.Model):
     release_date = db.Column(db.DateTime)
 
     # Relationships
-    exercises = db.relationship(EXERCISE, back_populates="workbook")
+    exercises = db.relationship(EXERCISE, back_populates="workbook", cascade="all, delete-orphan")
 
 
 class Exercise(db.Model):
@@ -46,7 +46,7 @@ class Exercise(db.Model):
 
     # Relationships
     workbook = db.relationship(WORKBOOK, back_populates="exercises")
-    answers = db.relationship(ANSWER, back_populates="exercise", lazy="dynamic")
+    answers = db.relationship(ANSWER, back_populates="exercise", lazy="dynamic", cascade="all, delete-orphan")
 
 
 class Answer(db.Model):
@@ -59,7 +59,7 @@ class Answer(db.Model):
     # Relationships
     user = db.relationship(USER, back_populates="answers")
     exercise = db.relationship(EXERCISE, back_populates="answers")
-    lines = db.relationship(LINE, back_populates="answer", lazy="dynamic")
+    lines = db.relationship(LINE, back_populates="answer", lazy="dynamic", cascade="all, delete-orphan")
 
 
 class Line(db.Model):

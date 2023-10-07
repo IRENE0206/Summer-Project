@@ -9,13 +9,37 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from .auth import login_required, USER_ID, IS_ADMIN, ADMIN_USERNAME
 from .db import db, Workbook, Exercise, Answer, Line, User
+from .grammar import is_equivalent
+from .parser import get_grammar
 from .util import (
-    unauthorized_handler, badrequest_handler, internal_server_error_handler, notfound_handler, succeed
+    unauthorized_handler, badrequest_handler, internal_server_error_handler, notfound_handler
 )
 
-ALLOWED_ORIGINS = ["*"]  # TODO: change it to my frontend domain
+# Constants
+ALLOWED_ORIGINS = ["*"]  # TODO: Update to frontend domain
 ALLOWED_METHODS = ["GET", "POST"]
 ALLOWED_HEADERS = ["Content-Type"]
+TIME_FORMAT = "%Y-%m-%dT%H:%M:%S"
+
+# Fields
+WORKBOOK_ID = "workbook_id"
+WORKBOOK_NAME = "workbook_name"
+RELEASE_DATE = "release_date"
+EXERCISE = "exercise"
+EXERCISE_ID = "exercise_id"
+EXERCISE_INDEX = "exercise_index"
+EXERCISE_NUMBER = "exercise_number"
+EXERCISE_CONTENT = "exercise_content"
+LINE = "line"
+LINES = "lines"
+LINE_ID = "line_id"
+FEEDBACK = "feedback"
+EXERCISES = "exercises"
+ANSWER_ID = "answer_id"
+INDEX = "index"
+LINE_INDEX = "line_index"
+VARIABLE = "variable"
+RULES = "rules"
 
 bp = Blueprint("app", __name__, url_prefix="/api")
 CORS(bp, resources={r"/api/*": {
@@ -23,12 +47,6 @@ CORS(bp, resources={r"/api/*": {
     "methods": ALLOWED_METHODS,
     "allow_headers": ALLOWED_HEADERS
 }})
-
-WORKBOOK_ID = "workbook_id"
-WORKBOOK_NAME = "workbook_name"
-RELEASE_DATE = "release_date"
-EXERCISE = "exercise"
-TIME_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
 
 @login_required
@@ -120,6 +138,7 @@ def format_workbook_response(workbook: Workbook):
         answer = answer_map.get(exercise.exercise_id)
         lines_data = [
             {
+                LINE_ID: line.line_id,
                 LINE_INDEX: line.line_index,
                 VARIABLE: line.variable,
                 RULES: line.rules
@@ -141,24 +160,19 @@ def format_workbook_response(workbook: Workbook):
     return response
 
 
-EXERCISE_ID = "exercise_id"
-EXERCISE_INDEX = "exercise_index"
-EXERCISE_NUMBER = "exercise_number"
-EXERCISE_CONTENT = "exercise_content"
-LINES = "lines"
-FEEDBACK = "feedback"
-EXERCISES = "exercises"
-
-
-def upsert_model(model, primary_key, primary_key_value, update_values):
+def upsert_model(model, primary_key, primary_key_value, update_values, preserve_fields: [str] = None):
     existing_item = db.session.execute(db.select(model).where(primary_key == primary_key_value)).scalar()
     if existing_item:
+        for field in preserve_fields:
+            if field in update_values:
+                del update_values[field]  # Remove fields that should be preserved
         update_query = db.update(model).where(primary_key == primary_key_value).values(**update_values)
         db.session.execute(update_query)
         return existing_item  # Return the existing item
     else:
         new_item = model(**update_values)
         db.session.add(new_item)
+        db.session.flush()
         return new_item  # Return the newly created item
 
 
@@ -182,49 +196,83 @@ def delete_absent_exercises(workbook_id, received_exercise_ids):
             db.session.delete(exercise)
 
 
+def handle_workbook_data(data, workbook_id: int = None):
+    validate_workbook_data(data)
+    return upsert_model(Workbook, Workbook.workbook_id, workbook_id, {
+        WORKBOOK_NAME: data[WORKBOOK_NAME],
+        RELEASE_DATE: datetime.strptime(data[RELEASE_DATE], TIME_FORMAT)
+    })
+
+
+def handle_exercise_data(workbook: Workbook, is_updating: bool, data) -> None:
+    exercises_data = data.get(EXERCISES, [])
+    received_exercise_ids = []
+    for exercise_data in exercises_data:
+        validate_exercise_data(exercise_data)
+        exercise = upsert_model(Exercise, Exercise.exercise_id, exercise_data.get(EXERCISE_ID, None), {
+            EXERCISE_NUMBER: exercise_data[EXERCISE_NUMBER],
+            EXERCISE_INDEX: exercise_data[EXERCISE_INDEX],
+            EXERCISE_CONTENT: exercise_data[EXERCISE_CONTENT],
+            WORKBOOK_ID: workbook.workbook_id
+        })
+        received_exercise_ids.append(exercise.exercise_id)
+
+    if is_updating:
+        delete_absent_exercises(workbook.workbook_id, received_exercise_ids)
+
+
+def handle_answer_and_line_data(data):
+    exercises_data = data.get(EXERCISES, [])
+    for exercise_data in exercises_data:
+        exercise_id = exercise_data.get(EXERCISE_ID, None)
+        answer_id = exercise_data.get(ANSWER_ID, None)  # Get answer_id from frontend if existing
+
+        # Upsert answer while preserving the 'FEEDBACK' field
+        answer = upsert_model(Answer, Answer.answer_id, answer_id, {
+            FEEDBACK: "",  # This will be updated later if needed
+            EXERCISE_ID: exercise_id,
+            USER_ID: session[USER_ID]
+        }, preserve_fields=[FEEDBACK])
+
+        if not answer:
+            raise ValueError("Unable to fetch or create an Answer for the given Exercise")
+        received_line_ids = []
+        for line_data in exercise_data[LINES]:
+            validate_line_data(line_data)
+            upsert_model(Line, Line.line_id, line_data.get(LINE_ID, None), {
+                LINE_INDEX: line_data[LINE_INDEX],
+                ANSWER_ID: answer.answer_id,
+                VARIABLE: line_data[VARIABLE].strip(),
+                RULES: line_data[RULES].strip()
+            })
+            received_line_ids.append(line_data[LINE_INDEX])
+
+        delete_absent_lines(answer.answer_id, received_line_ids)
+
+
+@bp.route("/workbooks/update", methods=["POST"])
 @bp.route("/workbooks/update/<int:workbook_id>", methods=["POST"])
 @login_required
-def update_workbook(workbook_id: int):
-    data = request.json
+def update_workbook(workbook_id: int = None):
+    # Check if the user is trying to create a new workbook without admin privileges
+    if workbook_id is None and not session[IS_ADMIN]:
+        return unauthorized_handler("Only admin users can create new workbooks.")
+
+    data = request.get_json()
     if not data:
         return badrequest_handler("Invalid data format.")
 
     try:
-        received_exercise_ids = []
-
+        workbook = None
         if session[IS_ADMIN]:
-            validate_workbook_data(data)
-            workbook_name = data[WORKBOOK_NAME]
-            release_date = datetime.strptime(data[RELEASE_DATE], TIME_FORMAT)
-            upsert_model(Workbook, Workbook.workbook_id, workbook_id,
-                         {'workbook_id': workbook_id, 'workbook_name': workbook_name, 'release_date': release_date})
+            workbook = handle_workbook_data(data=data, workbook_id=workbook_id)  # Admin-only operation
+            handle_exercise_data(workbook=workbook, is_updating=(workbook_id is not None),
+                                 data=data)  # Admin-only operation
 
-            exercises_data = data.get(EXERCISES, [])
-            for exercise_data in exercises_data:
-                validate_exercise_data(exercise_data)
-                exercise_update_data = {k: v for k, v in exercise_data.items() if k != LINES}
-                upsert_model(Exercise, Exercise.exercise_id, exercise_data[EXERCISE_ID], exercise_update_data)
-                received_exercise_ids.append(exercise_data[EXERCISE_ID])
-
-            delete_absent_exercises(workbook_id, received_exercise_ids)
-
-        exercises_data = data.get(EXERCISES, [])
-        for exercise_data in exercises_data:
-            answer = upsert_model(Answer, Answer.exercise_id, exercise_data[EXERCISE_ID],
-                                  {'exercise_id': exercise_data[EXERCISE_ID], 'feedback': ''})
-            if not answer:
-                raise ValueError("Unable to fetch or create an Answer for the given Exercise")
-
-            received_line_ids = []
-            for line_data in exercise_data[LINES]:
-                line_data['answer_id'] = answer.answer_id
-                upsert_model(Line, Line.line_id, line_data[LINE_INDEX], line_data)
-                received_line_ids.append(line_data[LINE_INDEX])
-
-            delete_absent_lines(answer.answer_id, received_line_ids)
+        handle_answer_and_line_data(data)  # All users can update their answers and lines
 
         db.session.commit()
-        return succeed("Workbook updated successfully.")
+        return jsonify({WORKBOOK_ID: workbook.workbook_id if workbook else "Not updated by non-admin user"}), 200
     except ValueError as ve:
         db.session.rollback()
         return badrequest_handler(f"Validation Error: {ve}")
@@ -234,77 +282,6 @@ def update_workbook(workbook_id: int):
     except Exception as e:
         db.session.rollback()
         return internal_server_error_handler(f"An unexpected error occurred while updating data: {str(e)}")
-
-
-@login_required
-@bp.route("/workbooks/new", methods=["POST"])
-def add_workbook():
-    if not session[IS_ADMIN]:
-        return unauthorized_handler("Only admin user can add new workbooks")
-    data = request.get_json()
-    if not data:
-        return badrequest_handler("Invalid data format.")
-
-    try:
-        validate_workbook_data(data)
-        workbook = create_workbook(data)
-        db.session.add(workbook)
-        db.session.flush()
-        exercises_data = data.get(EXERCISES, [])
-        for exercise_data in exercises_data:
-            validate_exercise_data(exercise_data)
-            exercise = create_exercise(exercise_data, workbook.workbook_id)
-            db.session.add(exercise)
-            db.session.flush()
-            # Storing answers for each exercise to the database
-            answer = create_answer(exercise.exercise_id)
-            db.session.add(answer)
-            db.session.flush()
-            for line_data in exercise_data[LINES]:
-                validate_line_data(line_data)
-                line = create_line(line_data, exercise.exercise_id)
-                if line:
-                    db.session.add(line)
-                    db.session.flush()
-        db.session.commit()
-        return jsonify({WORKBOOK_ID: workbook.workbook_id}), 200
-    except ValueError as ve:
-        db.session.rollback()
-        return badrequest_handler(f"Validation Error: {ve}")
-    except Exception as e:
-        db.session.rollback()
-        return internal_server_error_handler(f"An unexpected error occurred while creating new workbook: {str(e)}")
-
-
-def create_workbook(workbook_data) -> Workbook:
-    release_date = datetime.strptime(workbook_data[RELEASE_DATE], TIME_FORMAT)
-    return Workbook(workbook_name=workbook_data[WORKBOOK_NAME], release_date=release_date)
-
-
-INDEX = "index"
-
-
-def create_exercise(exercise_data, workbook_id: int) -> Exercise:
-    return Exercise(exercise_number=exercise_data[EXERCISE_NUMBER].strip(),
-                    exercise_index=exercise_data[EXERCISE_INDEX],
-                    exercise_content=exercise_data[EXERCISE_CONTENT].strip(),
-                    workbook_id=workbook_id)
-
-
-def create_answer(exercise_id: int) -> Answer:
-    return Answer(feedback="", exercise_id=exercise_id, user_id=session.get(USER_ID))
-
-
-def create_line(line_data, answer_id: int) -> Line | None:
-    index = line_data[LINE_INDEX]
-    variable_stripped = line_data[VARIABLE].strip()
-    rules_stripped = line_data[RULES].strip()
-    if not (variable_stripped or rules_stripped):
-        return None
-    return Line(line_index=index,
-                answer_id=answer_id,
-                variable=variable_stripped,
-                rules=rules_stripped)
 
 
 def validate_workbook_data(data) -> None:
@@ -319,12 +296,6 @@ def validate_exercise_data(data) -> None:
     validate_data(data, required_keys, entity_name)
 
 
-LINE = "line"
-LINE_INDEX = "line_index"
-VARIABLE = "variable"
-RULES = "rules"
-
-
 def validate_line_data(data) -> None:
     required_keys = [LINE_INDEX, VARIABLE, RULES]
     entity_name = LINE
@@ -334,10 +305,6 @@ def validate_line_data(data) -> None:
 def validate_data(data, required_keys: list[str], entity_name: str) -> None:
     if not all(key in data for key in required_keys):
         raise ValueError("Missing required fields in " + entity_name + " data")
-
-
-from .parser import get_grammar
-from .grammar import is_equivalent
 
 
 @bp.route("/workbooks/check/<int:workbook_id>", methods=["POST"])

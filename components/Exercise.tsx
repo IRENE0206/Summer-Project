@@ -28,7 +28,7 @@ export default function Exercise({
     const [question, setQuestion] = useState<string>(qa?.exercise_content || "");
     const [answerLines, setAnswerLines] = useState<Line[]>(
         qa ? (qa.lines)
-            : ([{line_index: 0, variable: "", rules: ""}])
+            : ([{line_id: null, line_index: 0, variable: "", rules: ""}])
     );
 
     useEffect(() => {
@@ -81,7 +81,7 @@ export default function Exercise({
                                     <Form.Group>
                                         <Form.FloatingLabel label={"Question View:"}>
                                             <Form.Control as={Container}
-                                                className={"rounded-bottom-0 h-auto bg-secondary-subtle"}>
+                                                          className={"rounded-bottom-0 h-auto bg-secondary-subtle"}>
                                                 <Latex>{`${question}`}</Latex>
                                             </Form.Control>
                                         </Form.FloatingLabel>

@@ -17,6 +17,7 @@ export interface UserInterface {
 }
 
 export interface Line {
+    line_id: number | null;
     line_index: number;
     variable: string;
     rules: string;
