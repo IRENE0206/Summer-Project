@@ -40,9 +40,6 @@ class NonTerminal(Symbol):
     def __init__(self, rules_list: ["Rule"] = None):
         super().__init__()
         self.rules_list = rules_list if rules_list else []
-        # Debug: Check the types of objects in rules_list
-        for rule in self.rules_list:
-            print(f"Debug: Initializing NonTerminal with rule of type {type(rule)}")
 
     def add_rule(self, rule: "Rule") -> None:
         if rule not in self.rules_list:
@@ -152,7 +149,6 @@ class Grammar:
                         assert isinstance(first_symbol, NonTerminal)
                         # Replace X with all X-rules
                         for x_rule in first_symbol.rules_list:
-                            print(f"x_rule type: {type(x_rule)}")
                             new_rules.append(Rule(x_rule.symbols_list + rule.symbols_list[1:]))
             non_terminal.rules_list = new_rules  # Update the rules list for the non-terminal
 
@@ -265,15 +261,19 @@ def choose_type(l_max: int, left: list[Symbol], right: list[Symbol], prev_left_f
 # type A replacement
 def replace_type_a(l_max: int, left: list[Symbol], right: list[Symbol], prev_left_feedback: str,
                    prev_right_feedback: str) -> tuple[bool, str | None, str | None]:
-    leftmost_terminals_derivable_left = left[0].get_all_leftmost_terminals_derivable()
-    leftmost_terminals_derivable_right = right[0].get_all_leftmost_terminals_derivable()
+    leftmost_terminals_derivable_left = left[0].get_all_leftmost_terminals_derivable() if len(left) > 0 else []
+    leftmost_terminals_derivable_right = right[0].get_all_leftmost_terminals_derivable() if len(right) > 0 else []
     left_feedback = prev_left_feedback
     right_feedback = prev_right_feedback
     if Counter(leftmost_terminals_derivable_left) != Counter(leftmost_terminals_derivable_right):
-        left_feedback += ([terminal_symbol for terminal_symbol in leftmost_terminals_derivable_left if
-                           terminal_symbol not in leftmost_terminals_derivable_right][0])
-        right_feedback += ([terminal_symbol for terminal_symbol in leftmost_terminals_derivable_right if
-                            terminal_symbol not in leftmost_terminals_derivable_left][0])
+        terminals_left_not_right = [terminal_symbol for terminal_symbol in leftmost_terminals_derivable_left if
+                                    terminal_symbol not in leftmost_terminals_derivable_right]
+        if len(terminals_left_not_right) > 0:
+            left_feedback += (terminals_left_not_right[0])
+        terminals_right_not_left = [terminal_symbol for terminal_symbol in leftmost_terminals_derivable_right if
+                                    terminal_symbol not in leftmost_terminals_derivable_left]
+        if len(terminals_right_not_left) > 0:
+            right_feedback += (terminals_right_not_left[0])
         return False, left_feedback, right_feedback
 
     for terminal in leftmost_terminals_derivable_left:
@@ -281,11 +281,12 @@ def replace_type_a(l_max: int, left: list[Symbol], right: list[Symbol], prev_lef
         right_feedback = right_feedback + terminal
         _, _, left_after_derivation = derive_terminal_symbol_from_rule(left, terminal)
         _, _, right_after_derivation = derive_terminal_symbol_from_rule(right, terminal)
-        left_right_is_equivalent, left_feedback_new, right_feedback_new = choose_type(l_max=l_max,
-                                                                                      left=left_after_derivation,
-                                                                                      right=right_after_derivation,
-                                                                                      prev_left_feedback=left_feedback,
-                                                                                      prev_right_feedback=right_feedback)
+        left_right_is_equivalent, left_feedback_new, right_feedback_new = (
+            choose_type(l_max=l_max,
+                        left=left_after_derivation,
+                        right=right_after_derivation,
+                        prev_left_feedback=left_feedback,
+                        prev_right_feedback=right_feedback))
         if not left_right_is_equivalent:
             return False, left_feedback_new, right_feedback_new
     return True, None, None
@@ -296,7 +297,6 @@ def replace_type_b(l_max: int, left: list[Symbol], right: list[Symbol], prev_lef
                    prev_right_feedback: str) -> tuple[bool, str | None, str | None]:
     # t, the shortest terminal string derivable from the leftmost symbol of left side
     t = left[0].get_shortest_string_derivable()
-
     left_feedback = prev_left_feedback + t
     is_t_derivable_from_right, added_symbols_count, right_rule_after_derivation = derive_terminal_string_from_rule(
         right, t)
@@ -329,9 +329,9 @@ def is_equivalent(g1: Grammar, g2: Grammar) -> tuple[bool, str]:
                                                                            right_feedback)
     if g1_is_equivalent_to_g2:
         return True, "Congratulations! Your answer is correct"
-    feedback = "Here is a string derivable from "
+    feedback = "There is a string starting with the following segment that is derivable from "
     if len(left_feedback) < len(right_feedback):
-        feedback += "correct Grammar but not from your Grammar: " + left_feedback
+        feedback += "correct Grammar but not from your Grammar: " + right_feedback
     else:
-        feedback += "your Grammar but not from the correct Grammar: " + right_feedback
+        feedback += "your Grammar but not from the correct Grammar: " + left_feedback
     return False, (feedback + "\n")

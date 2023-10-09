@@ -14,6 +14,9 @@ export default function HomePage() {
                 </Card.Header>
 
                 <Card.Body className={"m-3"}>
+                    <Card.Text>
+                        A useful tool to check the equivalence of two epsilon-free LL(1) grammars.
+                    </Card.Text>
                     {/* Display information based on user role */}
                     <Card className={"mb-3"}>
                         <Card.Body>

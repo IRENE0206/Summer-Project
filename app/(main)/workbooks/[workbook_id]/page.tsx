@@ -11,7 +11,7 @@ import WorkbookInfo from "@/components/WorkbookInfo";
 export default function EditWorkbook() {
     const router = useRouter();
     const userInfo = useContext(UserInfoContext);
-    const [workbookId, setWorkbookId] = useState(String(useParams()["workbook_id"]));
+    const workbookId = String(useParams()["workbook_id"]);
     const [nextTempId, setNextTempId] = useState(-1);
     const [feedbacks, setFeedbacks] = useState<{ [key: string]: string } | null>(null);
     const [workbookName, setWorkbookName] = useState<string>("");
@@ -106,15 +106,11 @@ export default function EditWorkbook() {
             release_date: `${releaseDate}T${releaseTime}`,
             exercises: exercisesToSend,
         };
-        console.log("TO SEND" + exercisesToSend);
-        updatedWorkbookData.exercises.map(exercise => console.log(exercise.lines));
         const updateApi = (isNewWorkbook ? "/api/workbooks/update" : `/api/workbooks/update/${workbookId}`);
         setIsSaving(true);
-        console.log("before sending data");
         let dataToSend;
         if (userInfo.is_admin) {
             dataToSend = updatedWorkbookData;
-            console.log("set data to send");
         } else {
             const answersOnly = exercisesToSend.map(exercise => ({
                 exercise_id: exercise.exercise_id,
@@ -124,20 +120,17 @@ export default function EditWorkbook() {
                 exercises: answersOnly
             };
         }
-        console.log("Sending data:", dataToSend);
-        console.log("Sending data:", dataToSend.exercises[0].lines);
         const response = await fetchAPI(updateApi, {
             method: "POST",
             body: dataToSend,
         });
         if (response.success) {
             if (isNewWorkbook) {
-                router.push(`/workbooks/${response.data.workbook_id}`);
+                router.push(`/workbooks/${(response.data as { workbook_id: number }).workbook_id}`);
                 return;
             }
 
             const updatedWorkbook = await fetchAPI(`/api/workbooks/${workbookId}`, {method: "GET"});
-            console.log(updatedWorkbook);
             if (updatedWorkbook.success) {
                 setExercises((updatedWorkbook.data as WorkbookDataInterface).exercises);
                 setShowToast(true);
@@ -160,7 +153,6 @@ export default function EditWorkbook() {
             if (response.success) {
                 setFeedbacks(response.data as { [key: string]: string });
             } else {
-                console.error("WRONG WRONG WRONG");
                 console.error(response.errorMessage || "An error occurred.");
             }
         } catch (error) {
@@ -325,7 +317,7 @@ export default function EditWorkbook() {
                                         onDelete={() => handleDeleteQA(exercise.exercise_id)}
                                         isDeleteDisabled={exercises.length === 1}
                                     />
-                                    {userInfo.is_admin && feedbacks &&
+                                    {!userInfo.is_admin && feedbacks &&
                                         <Alert variant={"info"}>{feedbacks[`${exercise.exercise_id}`]}
                                         </Alert>}
                                 </Container>

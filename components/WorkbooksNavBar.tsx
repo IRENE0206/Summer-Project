@@ -24,14 +24,14 @@ export default function WorkbooksNavBar() {
             }
         };
 
-        fetchWorkbooks().catch(e => console.log(e));
+        fetchWorkbooks().catch(e => console.error(e));
     }, [workbooks]);
 
     if (errorMsg !== null) {
         return (
             <Nav.Item className={"w-100 p-0 m-0 text-center"}>
                 <Alert variant={"danger"}
-                    className={"rounded-5 text-center shadow-sm"}
+                       className={"rounded-5 text-center shadow-sm"}
                 > {/* Used Alert for better error visibility */}
                     Error loading workbooks: {errorMsg}
                 </Alert>

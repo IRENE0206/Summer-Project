@@ -46,7 +46,7 @@ export default function MainLayout({children}: { children: React.ReactNode }) {
                             className={"justify-content-between border-bottom border-light-subtle shadow"}
                         >
                             <Navbar.Toggle/>
-                            <Navbar.Brand className={"mx-auto"}>{WEBSITE_NAME}</Navbar.Brand>
+                            <Navbar.Brand className={"mx-auto"} href={"/home"}>{WEBSITE_NAME}</Navbar.Brand>
                         </Navbar>
                     </header>
                 </Col>

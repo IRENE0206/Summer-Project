@@ -203,7 +203,6 @@ def delete_absent_exercises(workbook_id, received_exercise_ids):
 
 def handle_workbook_data(data, workbook_id: int = None):
     validate_workbook_data(data)
-    print("VALIDATED")
     return upsert_model(Workbook, Workbook.workbook_id, workbook_id, {
         WORKBOOK_NAME: data[WORKBOOK_NAME],
         RELEASE_DATE: datetime.strptime(data[RELEASE_DATE], TIME_FORMAT)
@@ -212,7 +211,6 @@ def handle_workbook_data(data, workbook_id: int = None):
 
 def handle_exercise_data(workbook_id: int, is_updating: bool, data) -> None:
     exercises_data = data.get(EXERCISES, [])
-    print(exercises_data)
     received_exercise_ids = []
     current_app.logger.error("WARNING WARNING WARNING")
     for exercise_data in exercises_data:
@@ -240,7 +238,6 @@ def handle_exercise_data(workbook_id: int, is_updating: bool, data) -> None:
             raise ValueError("Unable to fetch or create an Answer for the given Exercise")
         received_line_ids = []
         for line_data in exercise_data[LINES]:
-            print("Line", line_data)
             validate_line_data(line_data)
             line = upsert_model(Line, Line.line_id, line_data.get(LINE_ID, None), {
                 LINE_INDEX: line_data[LINE_INDEX],
@@ -250,8 +247,6 @@ def handle_exercise_data(workbook_id: int, is_updating: bool, data) -> None:
             })
             received_line_ids.append(line.line_id)
         delete_absent_lines(answer.answer_id, received_line_ids)
-
-    print("received_exercise_ids", received_exercise_ids)
 
     if is_updating and session[IS_ADMIN]:
         delete_absent_exercises(workbook_id, received_exercise_ids)
@@ -304,15 +299,9 @@ def update_workbook(workbook_id: int = None):
 
     try:
         workbook_id_updated = workbook_id
-        print("HEHEHEHEHEHE")
-        print("data:", data)
         if session[IS_ADMIN]:
-            print("ISADMIN")
-            print(workbook_id)
             workbook_id_updated = handle_workbook_data(data=data, workbook_id=workbook_id).workbook_id
-            print("workbook_updated", workbook_id_updated)
 
-        print("HANDLE EXERCISE")
         handle_exercise_data(workbook_id=workbook_id_updated, is_updating=(workbook_id is not None),
                              data=data)  # Admin-only operation
 
@@ -335,7 +324,6 @@ def update_workbook(workbook_id: int = None):
 def validate_workbook_data(data) -> None:
     required_keys = [WORKBOOK_NAME, RELEASE_DATE, EXERCISES]
     entity_name = "workbooks"
-    print("ENTITY")
     validate_data(data, required_keys, entity_name)
 
 
