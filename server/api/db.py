@@ -16,6 +16,8 @@ WORKBOOK = "Workbook"
 EXERCISE = "Exercise"
 ANSWER = "Answer"
 LINE = "Line"
+DYNAMIC = "dynamic"
+CASCADE_OPTION = "all, delete-orphan"
 
 
 class User(db.Model):
@@ -25,7 +27,7 @@ class User(db.Model):
     role = db.Column(db.Enum(UserRole), nullable=False)
 
     # Relationships
-    answers = db.relationship(ANSWER, back_populates="user", lazy="dynamic")
+    answers = db.relationship(ANSWER, back_populates="user", lazy=DYNAMIC)
 
 
 class Workbook(db.Model):
@@ -34,7 +36,7 @@ class Workbook(db.Model):
     release_date = db.Column(db.DateTime)
 
     # Relationships
-    exercises = db.relationship(EXERCISE, back_populates="workbook", cascade="all, delete-orphan")
+    exercises = db.relationship(EXERCISE, back_populates="workbook", cascade=CASCADE_OPTION)
 
 
 class Exercise(db.Model):
@@ -46,7 +48,7 @@ class Exercise(db.Model):
 
     # Relationships
     workbook = db.relationship(WORKBOOK, back_populates="exercises")
-    answers = db.relationship(ANSWER, back_populates="exercise", lazy="dynamic", cascade="all, delete-orphan")
+    answers = db.relationship(ANSWER, back_populates="exercise", lazy=DYNAMIC, cascade=CASCADE_OPTION)
 
 
 class Answer(db.Model):
@@ -59,7 +61,7 @@ class Answer(db.Model):
     # Relationships
     user = db.relationship(USER, back_populates="answers")
     exercise = db.relationship(EXERCISE, back_populates="answers")
-    lines = db.relationship(LINE, back_populates="answer", lazy="dynamic", cascade="all, delete-orphan")
+    lines = db.relationship(LINE, back_populates="answer", lazy=DYNAMIC, cascade=CASCADE_OPTION)
 
 
 class Line(db.Model):

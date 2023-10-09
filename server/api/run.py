@@ -12,12 +12,12 @@ from .db import db, Workbook, Exercise, Answer, Line, User
 from .grammar import is_equivalent
 from .parser import get_grammar
 from .util import (
-    unauthorized_handler, badrequest_handler, internal_server_error_handler, notfound_handler
+    unauthorized_handler, badrequest_handler, internal_server_error_handler, notfound_handler, succeed
 )
 
 # Constants
 ALLOWED_ORIGINS = ["*"]  # TODO: Update to frontend domain
-ALLOWED_METHODS = ["GET", "POST"]
+ALLOWED_METHODS = ["GET", "POST", "DELETE"]
 ALLOWED_HEADERS = ["Content-Type"]
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
@@ -67,10 +67,12 @@ def get_workbooks():
             WORKBOOK_NAME: workbook.workbook_name,
             RELEASE_DATE: workbook.release_date,
         } for workbook in workbooks]), 200
-    except SQLAlchemyError:
+    except SQLAlchemyError as se:
+        current_app.logger.error(se)
         db.session.rollback()
-        return internal_server_error_handler("An error occurred when fetching workbooks data")
+        return internal_server_error_handler(f"An error occurred while updating data: {str(se)}")
     except Exception as e:
+        current_app.logger.error(e)
         db.session.rollback()
         return internal_server_error_handler(f"An unexpected error occurred: {str(e)}")
 
@@ -84,10 +86,12 @@ def get_workbook(workbook_id: int):
             return notfound_handler("Workbook not found")
         response = format_workbook_response(workbook)
         return jsonify(response), 200
-    except SQLAlchemyError as e:
+    except SQLAlchemyError as se:
+        current_app.logger.error(se)
         db.session.rollback()
-        return internal_server_error_handler(f"Database error while fetching workbook: {str(e)}")
+        return internal_server_error_handler(f"Database error while fetching workbook: {str(se)}")
     except Exception as e:
+        current_app.logger.error(e)
         db.session.rollback()
         return internal_server_error_handler(f"An unexpected error occurred when fetching workbook: {str(e)}")
 
@@ -103,14 +107,14 @@ def fetch_workbook_with_exercises(workbook_id: int):
     return db.session.execute(query).unique().scalar_one_or_none()
 
 
-def fetch_user_answers_for_exercises(exercise_ids: list[int]):
+def fetch_user_answers_for_exercises(exercise_ids: [int]):
     return db.session.execute(
         db.select(Answer)
         .filter(Answer.user_id == session[USER_ID], Answer.exercise_id.in_(exercise_ids))
     ).scalars().all()
 
 
-def fetch_lines_for_answers(answer_ids: list[int]):
+def fetch_lines_for_answers(answer_ids: [int]):
     return db.session.execute(
         db.select(Line)
         .filter(Line.answer_id.in_(answer_ids))
@@ -163,9 +167,10 @@ def format_workbook_response(workbook: Workbook):
 def upsert_model(model, primary_key, primary_key_value, update_values, preserve_fields: [str] = None):
     existing_item = db.session.execute(db.select(model).where(primary_key == primary_key_value)).scalar()
     if existing_item:
-        for field in preserve_fields:
-            if field in update_values:
-                del update_values[field]  # Remove fields that should be preserved
+        if preserve_fields is not None:
+            for field in preserve_fields:
+                if field in update_values:
+                    del update_values[field]  # Remove fields that should be preserved
         update_query = db.update(model).where(primary_key == primary_key_value).values(**update_values)
         db.session.execute(update_query)
         return existing_item  # Return the existing item
@@ -176,7 +181,7 @@ def upsert_model(model, primary_key, primary_key_value, update_values, preserve_
         return new_item  # Return the newly created item
 
 
-def delete_absent_lines(answer_id, received_line_ids):
+def delete_absent_lines(answer_id: int, received_line_ids: [int]):
     existing_line_ids = [result.line_id for result in
                          db.session.execute(db.select(Line.line_id).where(Line.answer_id == answer_id))]
     lines_to_delete = set(existing_line_ids) - set(received_line_ids)
@@ -198,34 +203,31 @@ def delete_absent_exercises(workbook_id, received_exercise_ids):
 
 def handle_workbook_data(data, workbook_id: int = None):
     validate_workbook_data(data)
+    print("VALIDATED")
     return upsert_model(Workbook, Workbook.workbook_id, workbook_id, {
         WORKBOOK_NAME: data[WORKBOOK_NAME],
         RELEASE_DATE: datetime.strptime(data[RELEASE_DATE], TIME_FORMAT)
     })
 
 
-def handle_exercise_data(workbook: Workbook, is_updating: bool, data) -> None:
+def handle_exercise_data(workbook_id: int, is_updating: bool, data) -> None:
     exercises_data = data.get(EXERCISES, [])
+    print(exercises_data)
     received_exercise_ids = []
-    for exercise_data in exercises_data:
-        validate_exercise_data(exercise_data)
-        exercise = upsert_model(Exercise, Exercise.exercise_id, exercise_data.get(EXERCISE_ID, None), {
-            EXERCISE_NUMBER: exercise_data[EXERCISE_NUMBER],
-            EXERCISE_INDEX: exercise_data[EXERCISE_INDEX],
-            EXERCISE_CONTENT: exercise_data[EXERCISE_CONTENT],
-            WORKBOOK_ID: workbook.workbook_id
-        })
-        received_exercise_ids.append(exercise.exercise_id)
-
-    if is_updating:
-        delete_absent_exercises(workbook.workbook_id, received_exercise_ids)
-
-
-def handle_answer_and_line_data(data):
-    exercises_data = data.get(EXERCISES, [])
+    current_app.logger.error("WARNING WARNING WARNING")
     for exercise_data in exercises_data:
         exercise_id = exercise_data.get(EXERCISE_ID, None)
-        answer_id = exercise_data.get(ANSWER_ID, None)  # Get answer_id from frontend if existing
+        answer_id = exercise_data.get(ANSWER_ID, None)
+        if session[IS_ADMIN]:
+            validate_exercise_data(exercise_data)
+            exercise = upsert_model(Exercise, Exercise.exercise_id, exercise_data.get(EXERCISE_ID, None), {
+                EXERCISE_NUMBER: exercise_data[EXERCISE_NUMBER],
+                EXERCISE_INDEX: exercise_data[EXERCISE_INDEX],
+                EXERCISE_CONTENT: exercise_data[EXERCISE_CONTENT],
+                WORKBOOK_ID: workbook_id
+            })
+            exercise_id = exercise.exercise_id
+            received_exercise_ids.append(exercise.exercise_id)
 
         # Upsert answer while preserving the 'FEEDBACK' field
         answer = upsert_model(Answer, Answer.answer_id, answer_id, {
@@ -238,16 +240,54 @@ def handle_answer_and_line_data(data):
             raise ValueError("Unable to fetch or create an Answer for the given Exercise")
         received_line_ids = []
         for line_data in exercise_data[LINES]:
+            print("Line", line_data)
             validate_line_data(line_data)
-            upsert_model(Line, Line.line_id, line_data.get(LINE_ID, None), {
+            line = upsert_model(Line, Line.line_id, line_data.get(LINE_ID, None), {
                 LINE_INDEX: line_data[LINE_INDEX],
                 ANSWER_ID: answer.answer_id,
                 VARIABLE: line_data[VARIABLE].strip(),
                 RULES: line_data[RULES].strip()
             })
-            received_line_ids.append(line_data[LINE_INDEX])
-
+            received_line_ids.append(line.line_id)
         delete_absent_lines(answer.answer_id, received_line_ids)
+
+    print("received_exercise_ids", received_exercise_ids)
+
+    if is_updating and session[IS_ADMIN]:
+        delete_absent_exercises(workbook_id, received_exercise_ids)
+
+
+@bp.route("/workbooks/delete/<int:workbook_id>", methods=["DELETE"])
+@login_required
+def delete_workbook(workbook_id: int):
+    # Check if the user is an admin
+    if not session[IS_ADMIN]:
+        return unauthorized_handler("Only admin users can delete workbooks.")
+
+    try:
+        # Fetch the workbook to be deleted
+        workbook = db.session.execute(
+            db.select(Workbook).where(Workbook.workbook_id == workbook_id)
+        ).scalar_one_or_none()
+
+        # If the workbook does not exist, return a 404 error
+        if workbook is None:
+            return notfound_handler("Workbook not found")
+
+        db.session.delete(workbook)
+
+        # Commit all deletions
+        db.session.commit()
+
+        return succeed("Workbook and related data have been deleted successfully.")
+    except SQLAlchemyError as se:
+        current_app.logger.error(se)
+        db.session.rollback()
+        return internal_server_error_handler(f"An error occurred while deleting data: {str(se)}")
+    except Exception as e:
+        current_app.logger.error(e)
+        db.session.rollback()
+        return internal_server_error_handler(f"An unexpected error occurred while deleting data: {str(e)}")
 
 
 @bp.route("/workbooks/update", methods=["POST"])
@@ -263,23 +303,31 @@ def update_workbook(workbook_id: int = None):
         return badrequest_handler("Invalid data format.")
 
     try:
-        workbook = None
+        workbook_id_updated = workbook_id
+        print("HEHEHEHEHEHE")
+        print("data:", data)
         if session[IS_ADMIN]:
-            workbook = handle_workbook_data(data=data, workbook_id=workbook_id)  # Admin-only operation
-            handle_exercise_data(workbook=workbook, is_updating=(workbook_id is not None),
-                                 data=data)  # Admin-only operation
+            print("ISADMIN")
+            print(workbook_id)
+            workbook_id_updated = handle_workbook_data(data=data, workbook_id=workbook_id).workbook_id
+            print("workbook_updated", workbook_id_updated)
 
-        handle_answer_and_line_data(data)  # All users can update their answers and lines
+        print("HANDLE EXERCISE")
+        handle_exercise_data(workbook_id=workbook_id_updated, is_updating=(workbook_id is not None),
+                             data=data)  # Admin-only operation
 
         db.session.commit()
-        return jsonify({WORKBOOK_ID: workbook.workbook_id if workbook else "Not updated by non-admin user"}), 200
+        return jsonify({WORKBOOK_ID: workbook_id_updated if workbook_id is None else "Updated by non-admin user"}), 200
     except ValueError as ve:
+        current_app.logger.error(ve)
         db.session.rollback()
         return badrequest_handler(f"Validation Error: {ve}")
     except SQLAlchemyError as se:
+        current_app.logger.error(se)
         db.session.rollback()
         return internal_server_error_handler(f"An error occurred while updating data: {str(se)}")
     except Exception as e:
+        current_app.logger.error(e)
         db.session.rollback()
         return internal_server_error_handler(f"An unexpected error occurred while updating data: {str(e)}")
 
@@ -287,6 +335,7 @@ def update_workbook(workbook_id: int = None):
 def validate_workbook_data(data) -> None:
     required_keys = [WORKBOOK_NAME, RELEASE_DATE, EXERCISES]
     entity_name = "workbooks"
+    print("ENTITY")
     validate_data(data, required_keys, entity_name)
 
 
@@ -308,6 +357,7 @@ def validate_data(data, required_keys: list[str], entity_name: str) -> None:
 
 
 @bp.route("/workbooks/check/<int:workbook_id>", methods=["POST"])
+@login_required
 def check_workbook(workbook_id: int):
     user_id = session[USER_ID]
     admin_username = session[ADMIN_USERNAME]
@@ -319,11 +369,12 @@ def check_workbook(workbook_id: int):
 
         if not admin:
             return notfound_handler("Admin not found. No correct answers to use")
-    except SQLAlchemyError as e:
-        current_app.logger.error(e)
+    except SQLAlchemyError as se:
+        current_app.logger.error(se)
         db.session.rollback()
-        return internal_server_error_handler("An error occurred when fetching admin")
+        return internal_server_error_handler(f"An error occurred when fetching admin: : {str(se)}")
     except Exception as e:
+        current_app.logger.error(e)
         db.session.rollback()
         return internal_server_error_handler(f"An unexpected error occurred while fetching admin: {str(e)}")
 
@@ -332,13 +383,14 @@ def check_workbook(workbook_id: int):
     try:
         # Fetch all exercises in the workbook
         exercise_ids = db.session.execute(
-            db.select(Exercise.exercise_id).filter_by(Exercise.workbook_id == workbook_id)
+            db.select(Exercise.exercise_id).filter(Exercise.workbook_id == workbook_id)
         ).scalars().all()
-    except SQLAlchemyError as e:
-        current_app.logger.error(e)
+    except SQLAlchemyError as se:
+        current_app.logger.error(se)
         db.session.rollback()
-        return internal_server_error_handler("An error occurred when fetching exercises")
+        return internal_server_error_handler(f"An error occurred when fetching exercises: {str(se)}")
     except Exception as e:
+        current_app.logger.error(e)
         db.session.rollback()
         return internal_server_error_handler(f"An unexpected error occurred while fetching exercises: {str(e)}")
 
@@ -350,11 +402,12 @@ def check_workbook(workbook_id: int):
             # Check equivalence
             result = is_equivalent(user_grammar, admin_grammar)
             results[exercise_id] = result
-        except SQLAlchemyError as e:
-            current_app.logger.error(e)
+        except SQLAlchemyError as se:
+            current_app.logger.error(se)
             db.session.rollback()
-            return internal_server_error_handler("An error occurred when fetching answers")
+            return internal_server_error_handler(f"An error occurred when fetching answers: {str(se)}")
         except Exception as e:
+            current_app.logger.error(e)
             db.session.rollback()
             return internal_server_error_handler(f"An unexpected error occurred while getting feedback: {str(e)}")
     return jsonify(results), 200

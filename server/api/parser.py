@@ -12,9 +12,10 @@ def get_grammar(exercise_id: int, user_id: int) -> Grammar:
     """
     Fetch lines related to given exercise_id and user_id.
     """
+    print("fetch lines")
     # Create the initial query
     lines_query = (
-        db.select(Line.variable, Line.rules, Line.line_index)
+        db.select(Line)
         .join(Answer, Line.answer_id == Answer.answer_id)
         .join(Exercise, Exercise.exercise_id == Answer.exercise_id)
         .filter(Exercise.exercise_id == exercise_id, Answer.user_id == user_id)
@@ -28,10 +29,12 @@ def get_grammar(exercise_id: int, user_id: int) -> Grammar:
     return process_lines(result)
 
 
-def process_lines(lines: list[Line]) -> Grammar:
+def process_lines(lines: [Line]) -> Grammar:
     non_terminal_strings = set([line.variable.strip() for line in lines])
+    print("non_terminal_strings", non_terminal_strings)
     # map each distinct non_terminal string with a NonTerminal instance
     non_terminal_dict = {non_terminal_string: NonTerminal() for non_terminal_string in non_terminal_strings}
+    print("A", non_terminal_dict.get("A").rules_list)
     # map each distinct terminal symbol string with a Terminal instance
     terminal_dict = {}
 
@@ -40,8 +43,10 @@ def process_lines(lines: list[Line]) -> Grammar:
 
     for line in lines:
         variable_string = line.variable.strip()
+        print("variable", variable_string)
         # TODO: make sure the variable is a single Capital letter
         rule_strings_set = set([s.strip() for s in line.rules.strip().split("|")])
+        print("rule_strings_set", rule_strings_set)
         # Instantiate a Rule instance for each distinct rule string
         rules_list = [process_rule_string(rule_string, non_terminal_dict, terminal_dict) for rule_string in
                       rule_strings_set]
@@ -52,14 +57,18 @@ def process_lines(lines: list[Line]) -> Grammar:
         if non_terminal not in non_terminals:
             non_terminals.append(non_terminal)
 
+    print("terminal_dict", terminal_dict)
+    print("non_terminals", non_terminals)
+    print("A", non_terminal_dict.get("A").rules_list[0].symbols_list)
+
     return Grammar(non_terminals)
 
 
 def process_rule_string(rule_string: str, non_terminal_dict: dict[str, NonTerminal],
                         terminal_dict: dict[str, Terminal]) -> Rule:
-    symbol_strings_list = rule_string.split()
     symbols_list = []
-    for symbol_string in symbol_strings_list:
+    for symbol_string in rule_string:
+        print("symbol_string", symbol_string)
         if symbol_string in non_terminal_dict:
             # symbol_string is a non-terminal
             symbols_list.append(non_terminal_dict[symbol_string])

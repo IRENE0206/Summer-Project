@@ -43,6 +43,7 @@ export const fetchAPI = async <T, R>(
         }
     } catch (error) {
         // Handle fetch or JSON parsing errors
+        console.error("An unexpected error occurred in fetchAPI:", error); // Added logging
         return {success: false, errorMessage: "An unexpected error occurred."};
     }
 };

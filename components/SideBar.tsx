@@ -41,10 +41,13 @@ export default function SideBar() {
                 className={"px-0 pt-3 d-flex flex-column h-100"}
             >
                 {is_admin ? (
-                    <Container fluid
+                    <Container
+                        fluid
                         className={"d-flex justify-content-center border-bottom border-secondary py-3"}
                     >
-                        <Button href={"/workbooks/new"} variant={"outline-primary"}
+                        <Button
+                            href={"/workbooks/new"}
+                            variant={"outline-primary"}
                             className={"rounded-5 w-100 shadow-sm"}
                             size={"lg"}
                         >
@@ -53,12 +56,14 @@ export default function SideBar() {
                     </Container>
 
                 ) : null}
-                <Container fluid
+                <Container
+                    fluid
                     className={"d-flex flex-column py-3 flex-grow-1"}
                 >
                     <WorkbooksNavBar/>
                 </Container>
-                <Container fluid
+                <Container
+                    fluid
                     className={"py-3 d-flex justify-content-center flex-grow-0 border-top border-secondary"}
                 >
                     <UserMenu/>

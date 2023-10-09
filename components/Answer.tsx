@@ -6,12 +6,15 @@ import {Line} from "@/interfaces/Interfaces";
 export default function Answer({
     answerLines,
     onChange,
+    generateTempId,
 }: {
     answerLines: Line[];
     onChange: (newAnswer: Line[]) => void;
+    generateTempId: () => number;
 }) {
     const [startingSymbolIndex, setStartingSymbolIndex] = useState<number>(0);
     const [uniqueName] = useState(() => `startingSymbol_${Date.now()}`);
+
 
     const updateLineIndexes = (lines: Line[]): Line[] => {
         return lines.map((line, index) => ({
@@ -32,7 +35,7 @@ export default function Answer({
     const handleAddLine = () => {
         const newLines = [
             ...answerLines,
-            {line_id: null, line_index: answerLines.length, variable: "", rules: ""},
+            {line_id: generateTempId(), line_index: answerLines.length, variable: "", rules: ""},
         ];
         onChange(updateLineIndexes(newLines));
     };

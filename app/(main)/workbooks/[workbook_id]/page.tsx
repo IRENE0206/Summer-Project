@@ -11,16 +11,17 @@ import WorkbookInfo from "@/components/WorkbookInfo";
 export default function EditWorkbook() {
     const router = useRouter();
     const userInfo = useContext(UserInfoContext);
-    const [workbookId, setWorkbookId] = useState(useParams()["workbook_id"]);
+    const [workbookId, setWorkbookId] = useState(String(useParams()["workbook_id"]));
+    const [nextTempId, setNextTempId] = useState(-1);
     const [feedbacks, setFeedbacks] = useState<{ [key: string]: string } | null>(null);
     const [workbookName, setWorkbookName] = useState<string>("");
     const [releaseDate, setReleaseDate] = useState("");
     const [releaseTime, setReleaseTime] = useState("");
     const [exercises, setExercises] = useState<ExerciseDataInterface[]>([
         {
-            exercise_id: 1, exercise_index: 1, exercise_number: "1",
+            exercise_id: -1, exercise_index: 1, exercise_number: "1",
             exercise_content: "",
-            lines: [{line_id: null, line_index: 0, variable: "", rules: ""}]
+            lines: [{line_id: -2, line_index: 0, variable: "", rules: ""}]
         },
     ]);
     const isNewWorkbook = (workbookId === "new");
@@ -63,7 +64,10 @@ export default function EditWorkbook() {
                     const formattedReleaseTime = formattedReleaseDateTime[1];
                     setReleaseDate(formattedReleaseDate);
                     setReleaseTime(formattedReleaseTime);
-                    setExercises((response.data as WorkbookDataInterface).exercises);
+                    const retrievedExercises = (response.data as WorkbookDataInterface).exercises;
+                    if (retrievedExercises.length > 0) {
+                        setExercises(retrievedExercises);
+                    }
                 } else {
                     console.error(response.errorMessage || "An error occurred.");
                 }
@@ -81,61 +85,77 @@ export default function EditWorkbook() {
 
     // Update data to the backend
     const updateData = async () => {
-        const updatedWorkbookData: WorkbookDataInterface = {
+        if (!userInfo) {
+            console.error("Failed to fetch userInfo");
+            return;
+        }
+        console.log("RAW:" + exercises);
+        const exercisesToSend = exercises.map(exercise => ({
+            exercise_id: exercise.exercise_id && exercise.exercise_id > 0 && exercise.exercise_id || null,
+            exercise_index: exercise.exercise_index,
+            exercise_number: exercise.exercise_number,
+            exercise_content: exercise.exercise_content,
+            lines: exercise.lines.map(line => ({
+                line_id: line.line_id && line.line_id > 0 && line.line_id || null,
+                line_index: line.line_index,
+                variable: line.variable,
+                rules: line.rules,
+            }))
+        }));
+        const updatedWorkbookData = {
             workbook_name: workbookName,
             release_date: `${releaseDate}T${releaseTime}`,
-            exercises: exercises,
+            exercises: exercisesToSend,
         };
-        console.log(updatedWorkbookData);
+        console.log("TO SEND" + exercisesToSend);
+        updatedWorkbookData.exercises.map(exercise => console.log(exercise.lines));
         const updateApi = (isNewWorkbook ? "/api/workbooks/update" : `/api/workbooks/update/${workbookId}`);
         setIsSaving(true);
-        try {
-            if (userInfo?.is_admin) {
-                const response = await fetchAPI(updateApi, {
-                    method: "POST",
-                    body: updatedWorkbookData,
-                });
-                if (response.success) {
-                    setShowToast(true);
-                    if (isNewWorkbook) {
-                        setWorkbookId(((response.data as { workbook_id: number }).workbook_id).toString());
-                    }
-                } else {
-                    console.error(response.errorMessage || "An error occurred.");
-                }
-            } else if (userInfo) {
-                const answersOnly = updatedWorkbookData.exercises.map(exercise => ({
-                    exercise_id: exercise.exercise_id,
-                    lines: exercise.lines
-                }));
-                const dataToSend = {
-                    exercises: answersOnly
-                };
-
-                console.log("Sending data:", dataToSend);
-
-                const response = await fetchAPI(updateApi, {
-                    method: "POST",
-                    body: dataToSend,
-                });
-                const updatedWorkbook = await fetchAPI(`/api/workbooks/${workbookId}`, {method: "GET"});
-
-                if (response.success && updatedWorkbook.success) {
-                    setExercises((updatedWorkbook.data as WorkbookDataInterface).exercises);
-                    setShowToast(true);
-                } else {
-                    console.error(response.errorMessage || updatedWorkbook.errorMessage || "An error occurred.");
-                }
-
-            }
-        } catch (error) {
-            console.error("An error occurred while updating data.", error);
+        console.log("before sending data");
+        let dataToSend;
+        if (userInfo.is_admin) {
+            dataToSend = updatedWorkbookData;
+            console.log("set data to send");
+        } else {
+            const answersOnly = exercisesToSend.map(exercise => ({
+                exercise_id: exercise.exercise_id,
+                lines: exercise.lines
+            }));
+            dataToSend = {
+                exercises: answersOnly
+            };
         }
+        console.log("Sending data:", dataToSend);
+        console.log("Sending data:", dataToSend.exercises[0].lines);
+        const response = await fetchAPI(updateApi, {
+            method: "POST",
+            body: dataToSend,
+        });
+        if (response.success) {
+            if (isNewWorkbook && userInfo.is_admin) {
+                setWorkbookId(((response.data as { workbook_id: number }).workbook_id).toString());
+            }
+
+            const updatedWorkbook = await fetchAPI(`/api/workbooks/${workbookId}`, {method: "GET"});
+            console.log(updatedWorkbook);
+            if (updatedWorkbook.success) {
+                setExercises((updatedWorkbook.data as WorkbookDataInterface).exercises);
+                setShowToast(true);
+                if (isNewWorkbook) {
+                    router.push(`/workbooks/${workbookId}`);
+                }
+            } else {
+                console.error(updatedWorkbook.errorMessage || "An error occurred.");
+            }
+        } else {
+            console.error(response.errorMessage || "An error occurred.");
+        }
+
         setIsSaving(false);
     };
 
     const checkingFeedbacks = async () => {
-        const feedbackAPI = `api/workbooks/check/${workbookId}`;
+        const feedbackAPI = `/api/workbooks/check/${workbookId}`;
         await updateData();
         setIsChecking(true);
         try {
@@ -151,6 +171,12 @@ export default function EditWorkbook() {
         }
         setIsChecking(false);
     };
+    // Function to generate a new temporary ID
+    const generateTempId = () => {  // <-- New Function
+        const newTempId = nextTempId - 1;
+        setNextTempId(newTempId);
+        return newTempId;
+    };
 
     // Form submission handler
     const handleSave = async (event: React.FormEvent) => {
@@ -164,17 +190,15 @@ export default function EditWorkbook() {
     };
 
     const handleAddQA = () => {
-        const newId = exercises[exercises.length - 1].exercise_id + 1;
-
         const newExerciseNum = exercises.length + 1;
         setExercises([
             ...exercises,
             {
-                exercise_id: newId,
+                exercise_id: generateTempId(),
                 exercise_index: newExerciseNum,
                 exercise_number: newExerciseNum.toString(),
                 exercise_content: "",
-                lines: [{line_id: null, line_index: 0, variable: "", rules: ""}],
+                lines: [{line_id: generateTempId(), line_index: 0, variable: "", rules: ""}],
             },
         ]);
     };
@@ -201,7 +225,8 @@ export default function EditWorkbook() {
     ) => {
         const updatedExercises = exercises.map((exercise) =>
             exercise.exercise_id === exercise_id ? {
-                exercise_id: exercise_id, exercise_index: exercise_index,
+                exercise_id: exercise_id,
+                exercise_index: exercise_index,
                 exercise_number: exercise_number,
                 exercise_content: exercise_content,
                 lines: lines
@@ -277,6 +302,7 @@ export default function EditWorkbook() {
                         <Form method={"post"} onSubmit={handleSave} className={"w-100 h-100 p-0 m-0"}>
                             <WorkbookInfo
                                 userInfo={userInfo}
+                                workbookId={!isNewWorkbook && workbookId || null}
                                 workbookName={workbookName}
                                 setWorkbookName={setWorkbookName}
                                 releaseDate={releaseDate}
@@ -303,7 +329,8 @@ export default function EditWorkbook() {
                                         isDeleteDisabled={exercises.length === 1}
                                     />
                                     {userInfo.is_admin && feedbacks &&
-                                        <Alert variant={"info"}>{feedbacks["${exercise.exercise_id}"]}</Alert>}
+                                        <Alert variant={"info"}>{feedbacks[`${exercise.exercise_id}`]}
+                                        </Alert>}
                                 </Container>
                             ))}
                             <Row className={"d-flex flex-row mt-3"}>

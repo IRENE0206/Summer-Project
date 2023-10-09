@@ -20,17 +20,24 @@ export default function Exercise({
         question: string,
         answerLines: Line[]
     }) => void;
-    qa?: ExerciseDataInterface;
+    qa: ExerciseDataInterface;
 }) {
     const userInfo = useContext(userInfoContext);
     const [manuallyEdited, setManuallyEdited] = useState(false);
-    const [number, setNumber] = useState<string>(qa?.exercise_number || index.toString());
-    const [question, setQuestion] = useState<string>(qa?.exercise_content || "");
-    const [answerLines, setAnswerLines] = useState<Line[]>(
-        qa ? (qa.lines)
-            : ([{line_id: null, line_index: 0, variable: "", rules: ""}])
-    );
-
+    const [number, setNumber] = useState<string>(qa.exercise_number);
+    const [question, setQuestion] = useState<string>(qa.exercise_content);
+    const [answerLines, setAnswerLines] = useState<Line[]>(qa.lines.length > 0 && qa.lines || [{
+        line_id: -1,
+        line_index: 0,
+        variable: "",
+        rules: ""
+    }]);
+    const [nextTempId, setNextTempId] = useState(-1);
+    const generateTempId = () => {
+        const newTempId = nextTempId - 1;
+        setNextTempId(newTempId);
+        return newTempId;
+    };
     useEffect(() => {
         if (!manuallyEdited) {
             setNumber(index.toString());
@@ -111,7 +118,9 @@ export default function Exercise({
 
                 <Row className={"pt-3"}>
                     <Col>
-                        <Answer answerLines={answerLines} onChange={setAnswerLines}/>
+                        <Answer answerLines={answerLines} onChange={setAnswerLines}
+                                generateTempId={generateTempId}
+                        />
                     </Col>
                 </Row>
             </Card.Body>

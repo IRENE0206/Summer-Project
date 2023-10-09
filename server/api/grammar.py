@@ -32,12 +32,12 @@ class Terminal(Symbol):
     def get_shortest_string_derivable(self) -> str:
         return self.string
 
-    def get_all_leftmost_terminals_derivable(self) -> list[str]:
+    def get_all_leftmost_terminals_derivable(self) -> [str]:
         return [self.string]
 
 
 class NonTerminal(Symbol):
-    def __init__(self, rules_list: list["Rule"] = None):
+    def __init__(self, rules_list: ["Rule"] = None):
         super().__init__()
         self.rules_list = rules_list if rules_list else []
 
@@ -48,11 +48,11 @@ class NonTerminal(Symbol):
     def remove_rule(self, rule: "Rule") -> None:
         self.rules_list.remove(rule)
 
-    def has_and_only_has_rule(self, rule_symbols: list[Symbol]) -> bool:
+    def has_and_only_has_rule(self, rule_symbols: [Symbol]) -> bool:
         return len(self.rules_list) == 1 and self.rules_list[0].symbols_list == rule_symbols
 
-    def get_all_leftmost_terminals_derivable(self) -> list[Symbol]:
-        return [rule.symbols_list[0] for rule in self.rules_list]
+    def get_all_leftmost_terminals_derivable(self) -> [Symbol]:
+        return [rule.symbols_list[0].string for rule in self.rules_list]
 
     def get_shortest_string_derivable(self) -> str:
         shortest = ""
@@ -81,7 +81,7 @@ class NonTerminal(Symbol):
 
 
 class Rule:
-    def __init__(self, symbols_list: list[Symbol] = None):
+    def __init__(self, symbols_list: [Symbol] = None):
         self.symbols_list = symbols_list if symbols_list else []
 
     def is_unit_rule(self) -> tuple[bool, Symbol | None]:
@@ -113,7 +113,7 @@ class Rule:
 class Grammar:
 
     # initiate a "Grammar" object
-    def __init__(self, non_terminals: list[NonTerminal]):
+    def __init__(self, non_terminals: [NonTerminal]):
         # before converting, the instance just represents an ε-free LL(1) grammar
         self.is_s_grammar = False
         self.non_terminals = non_terminals
@@ -122,61 +122,60 @@ class Grammar:
         """
         Unit rule: rule in the form A -> B
         """
-        non_terminals_to_examine = self.non_terminals.copy()
-        non_terminals_examined = []
-        while len(non_terminals_examined) > 0:
-            non_terminals_examined = []
-            for non_terminal in non_terminals_to_examine:
-                has_unit_rules = False
+        changes_made = True  # Initialize to True to enter the loop at least once
+        while changes_made:
+            changes_made = False  # Reset for each iteration
+            for non_terminal in self.non_terminals:
+                new_rules = []  # To hold new rules that will replace unit rules
                 for rule in non_terminal.rules_list:
                     is_unit_rule, unit_rule_non_terminal = rule.is_unit_rule()
                     if is_unit_rule:
                         assert isinstance(unit_rule_non_terminal, NonTerminal)
-                        has_unit_rules = True
-                        non_terminal.remove_rule(rule)
-                        [non_terminal.add_rule(r) for r in unit_rule_non_terminal.rules_list]
-                if not has_unit_rules:
-                    non_terminals_examined.append(non_terminal)
-            [non_terminals_to_examine.remove(n) for n in non_terminals_examined]
+                        changes_made = True  # A change was made, so we'll need another iteration
+                        new_rules.extend(unit_rule_non_terminal.rules_list)  # Replace with all Y-rules
+                    else:
+                        new_rules.append(rule)  # Keep the non-unit rule as is
+                non_terminal.rules_list = new_rules  # Update the rules list for the non-terminal
 
     def _produce_m_handles(self) -> None:
         for non_terminal in self.non_terminals:
-            rules_to_examine = non_terminal.rules_list.copy()
-            while len(rules_to_examine) > 0:
-                rules_examined = []
-                for rule in rules_to_examine:
-                    if rule.has_m_handle():
-                        rules_examined.append(rule)
-                    else:
+            new_rules = []  # To hold new rules that will replace existing rules
+            for rule in non_terminal.rules_list:
+                if rule.has_m_handle():
+                    new_rules.append(rule)  # Keep the rule as is if it starts with a terminal
+                else:
+                    while not rule.has_m_handle():
                         first_symbol = rule.symbols_list[0]
                         assert isinstance(first_symbol, NonTerminal)
-                        rule.symbols_list[:0] = first_symbol.rules_list
-                [rules_to_examine.remove(r) for r in rules_examined]
+                        # Replace X with all X-rules
+                        for x_rule in first_symbol.rules_list:
+                            new_rules.append(Rule(x_rule.symbols_list + rule.symbols_list[1:]))
+            non_terminal.rules_list = new_rules  # Update the rules list for the non-terminal
 
     def _produce_standard_handles(self) -> None:
-        non_terminals_to_examine = self.non_terminals.copy()
-        while len(non_terminals_to_examine) > 0:
-            non_terminals_examined = []
-            for non_terminal in non_terminals_to_examine:
-                rules_to_examine = non_terminal.rules_list.copy()
-                while len(rules_to_examine) > 0:
-                    rules_examined = []
-                    for rule in rules_to_examine:
-                        first_symbol = rule.symbols_list[0]
-                        has_standard_handle, rule_symbols_remaining = rule.has_standard_handle()
-                        if has_standard_handle:
-                            rules_examined.append(rule)
+        changes_made = True  # To keep track of whether any changes were made in each iteration
+        while changes_made:
+            changes_made = False  # Reset for each iteration
+            for non_terminal in self.non_terminals:
+                new_rules = []  # To hold new rules that will replace existing rules
+                for rule in non_terminal.rules_list:
+                    first_symbol = rule.symbols_list[0]
+                    has_standard_handle, rule_symbols_remaining = rule.has_standard_handle()
+                    if has_standard_handle:
+                        new_rules.append(rule)  # Keep the rule as is if it has a standard handle
+                    else:
+                        changes_made = True  # A change is being made
+                        # Check if a non-terminal already exists for the remaining symbols
+                        found, existing_non_terminal = self._find_non_terminal_for_rule(rule_symbols_remaining)
+                        if found:
+                            new_rules.append(Rule([first_symbol, existing_non_terminal]))
                         else:
-                            find_existing_non_terminal, existing_non_terminal = self._find_non_terminal_for_rule(
-                                rule_symbols_remaining)
-                            if find_existing_non_terminal:
-                                rule.symbols_list = [first_symbol, existing_non_terminal]
-                            else:
-                                new_non_terminal = NonTerminal([Rule(rule_symbols_remaining)])
-                                rule.symbols_list = [first_symbol, new_non_terminal]
-                                self.non_terminals.append(new_non_terminal)
-                                non_terminals_to_examine.append(new_non_terminal)
-            [non_terminals_to_examine.remove(n) for n in non_terminals_examined]
+                            # Create a new non-terminal for the remaining symbols in the handle
+                            new_non_terminal = NonTerminal([Rule(rule_symbols_remaining)])
+                            self.non_terminals.append(new_non_terminal)
+                            # Replace the rule with a new one that has a handle of length 1
+                            new_rules.append(Rule([first_symbol, new_non_terminal]))
+                non_terminal.rules_list = new_rules  # Update the rules list for the non-terminal
 
     def _find_non_terminal_for_rule(self, rule_symbols: list[Symbol]) -> tuple[bool, NonTerminal | None]:
         for non_terminal in self.non_terminals:
@@ -228,7 +227,7 @@ def derive_terminal_symbol_from_rule(rule: list[Symbol], terminal: str) -> tuple
     return is_derivable, len(after_derivation), (after_derivation + rule[1:])
 
 
-def derive_terminal_string_from_rule(rule: list[Symbol], string: str) -> tuple[bool, int, list[Symbol] | None]:
+def derive_terminal_string_from_rule(rule: [Symbol], string: str) -> tuple[bool, int, list[Symbol] | None]:
     if len(rule) == 0 and len(string) > 0:
         return False, 0, None
     first_terminal_symbol = string[0]
@@ -267,10 +266,10 @@ def replace_type_a(l_max: int, left: list[Symbol], right: list[Symbol], prev_lef
     left_feedback = prev_left_feedback
     right_feedback = prev_right_feedback
     if Counter(leftmost_terminals_derivable_left) != Counter(leftmost_terminals_derivable_right):
-        left_feedback += [terminal_symbol for terminal_symbol in leftmost_terminals_derivable_left if
-                          terminal_symbol not in leftmost_terminals_derivable_right][0]
-        right_feedback += [terminal_symbol for terminal_symbol in leftmost_terminals_derivable_right if
-                           terminal_symbol not in leftmost_terminals_derivable_left][0]
+        left_feedback += ([terminal_symbol for terminal_symbol in leftmost_terminals_derivable_left if
+                           terminal_symbol not in leftmost_terminals_derivable_right][0])
+        right_feedback += ([terminal_symbol for terminal_symbol in leftmost_terminals_derivable_right if
+                            terminal_symbol not in leftmost_terminals_derivable_left][0])
         return False, left_feedback, right_feedback
 
     for terminal in leftmost_terminals_derivable_left:
@@ -278,10 +277,11 @@ def replace_type_a(l_max: int, left: list[Symbol], right: list[Symbol], prev_lef
         right_feedback = right_feedback + terminal
         _, _, left_after_derivation = derive_terminal_symbol_from_rule(left, terminal)
         _, _, right_after_derivation = derive_terminal_symbol_from_rule(right, terminal)
-        left_right_is_equivalent, left_feedback_new, right_feedback_new = choose_type(l_max, left_after_derivation,
-                                                                                      right_after_derivation,
-                                                                                      left_feedback,
-                                                                                      right_feedback)
+        left_right_is_equivalent, left_feedback_new, right_feedback_new = choose_type(l_max=l_max,
+                                                                                      left=left_after_derivation,
+                                                                                      right=right_after_derivation,
+                                                                                      prev_left_feedback=left_feedback,
+                                                                                      prev_right_feedback=right_feedback)
         if not left_right_is_equivalent:
             return False, left_feedback_new, right_feedback_new
     return True, None, None
