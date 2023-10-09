@@ -40,6 +40,9 @@ class NonTerminal(Symbol):
     def __init__(self, rules_list: ["Rule"] = None):
         super().__init__()
         self.rules_list = rules_list if rules_list else []
+        # Debug: Check the types of objects in rules_list
+        for rule in self.rules_list:
+            print(f"Debug: Initializing NonTerminal with rule of type {type(rule)}")
 
     def add_rule(self, rule: "Rule") -> None:
         if rule not in self.rules_list:
@@ -149,6 +152,7 @@ class Grammar:
                         assert isinstance(first_symbol, NonTerminal)
                         # Replace X with all X-rules
                         for x_rule in first_symbol.rules_list:
+                            print(f"x_rule type: {type(x_rule)}")
                             new_rules.append(Rule(x_rule.symbols_list + rule.symbols_list[1:]))
             non_terminal.rules_list = new_rules  # Update the rules list for the non-terminal
 

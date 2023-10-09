@@ -317,7 +317,7 @@ def update_workbook(workbook_id: int = None):
                              data=data)  # Admin-only operation
 
         db.session.commit()
-        return jsonify({WORKBOOK_ID: workbook_id_updated if workbook_id is None else "Updated by non-admin user"}), 200
+        return jsonify({WORKBOOK_ID: workbook_id_updated}), 200
     except ValueError as ve:
         current_app.logger.error(ve)
         db.session.rollback()

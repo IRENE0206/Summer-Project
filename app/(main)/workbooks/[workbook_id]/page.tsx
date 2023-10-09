@@ -89,7 +89,6 @@ export default function EditWorkbook() {
             console.error("Failed to fetch userInfo");
             return;
         }
-        console.log("RAW:" + exercises);
         const exercisesToSend = exercises.map(exercise => ({
             exercise_id: exercise.exercise_id && exercise.exercise_id > 0 && exercise.exercise_id || null,
             exercise_index: exercise.exercise_index,
@@ -132,8 +131,9 @@ export default function EditWorkbook() {
             body: dataToSend,
         });
         if (response.success) {
-            if (isNewWorkbook && userInfo.is_admin) {
-                setWorkbookId(((response.data as { workbook_id: number }).workbook_id).toString());
+            if (isNewWorkbook) {
+                router.push(`/workbooks/${response.data.workbook_id}`);
+                return;
             }
 
             const updatedWorkbook = await fetchAPI(`/api/workbooks/${workbookId}`, {method: "GET"});
@@ -141,9 +141,6 @@ export default function EditWorkbook() {
             if (updatedWorkbook.success) {
                 setExercises((updatedWorkbook.data as WorkbookDataInterface).exercises);
                 setShowToast(true);
-                if (isNewWorkbook) {
-                    router.push(`/workbooks/${workbookId}`);
-                }
             } else {
                 console.error(updatedWorkbook.errorMessage || "An error occurred.");
             }
